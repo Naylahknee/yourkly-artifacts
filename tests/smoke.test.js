@@ -42,8 +42,75 @@ test('workspace lives behind /app', async () => {
   const html = await r.text();
   assert.ok(html.includes('id="app"'), 'app shell present');
   assert.ok(html.includes('app-sidebar'), 'sidebar present');
-  assert.ok(html.includes('New project'), 'nav present');
   assert.ok(html.includes('Your work, made clear.'), 'tagline present');
+  for (const item of ['My Projects', 'Recent Activity', 'Account', 'Help']) {
+    assert.ok(html.includes(item), 'nav has ' + item);
+  }
+  assert.ok(html.includes('id="drawer"'), 'mobile drawer present');
+});
+
+test('app serves every screen group from the page map', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  const screens = [
+    'My Projects', 'Timeline', 'Account', 'Add a project',
+    'Project Home', 'Updates', 'Things to Do', 'What do you want to change?',
+    'Project files', 'What changed', 'Restore an earlier version',
+    'Separate versions', 'Continue in', 'Who Can See It', 'Project settings',
+    'Plain-English glossary', 'When something looks wrong', 'Contact support',
+    'How Yourkly works', 'Send in the helpers', 'Keep this one',
+  ];
+  for (const s of screens) {
+    assert.ok(html.includes(s), 'screen copy present: ' + s);
+  }
+});
+
+test('continue-in page is the agreed empty state', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('Nothing here yet.'), 'continue-in empty state present');
+  assert.ok(!html.includes('What Yourkly is packing'), 'no brief-builder UI');
+});
+
+test('empty-basket mascot wired into the My Projects empty state', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('IMG_EMPTY_BASKET'), 'empty basket mascot embedded');
+  assert.ok(html.includes('Your basket is empty.'), 'empty state headline present');
+  assert.ok(html.includes('the stork will carry it home'), 'warm plain-language line present');
+});
+
+test('agent mascots appear wherever agents appear', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('MASCOT_IMG'), 'mascot image map present (data URLs inlined by the bundler)');
+  assert.ok(html.includes('IMG_EMPTY_BASKET'), 'empty basket mascot embedded');
+  assert.ok(html.includes('mascot-trio'), 'mascot trio on the helpers promo');
+  assert.ok(html.includes('mascot--working'), 'working-state mascot animation present');
+});
+
+test('upgraded animations present with reduced-motion fallback', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  for (const token of ['stork-delivery', 'parcel-drop', 'basket-land', 'mascot-bob', 'shimmer', 'prefers-reduced-motion']) {
+    assert.ok(html.includes(token), 'animation token present: ' + token);
+  }
+});
+
+test('app names no GitHub, no Artifacts, no Cloudflare, no Workers in user text', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  const textOnly = html
+    .replace(/src="data:[^"]*"/g, '')
+    .replace(/href="[^"]*"/g, '')
+    .replace(/https:\/\/github\.com\/[A-Za-z0-9/_?=&;.-]*/g, '');
+  const lower = textOnly.toLowerCase();
+  for (const word of ['github', 'artifact', 'cloudflare', 'worker']) {
+    assert.ok(!lower.includes(word), `app should not say "${word}" where the user can see`);
+  }
+  for (const word of ['\\bcommit\\b', '\\bmerge\\b', '\\brepository\\b', '\\bbranch\\b']) {
+    assert.ok(!new RegExp(word).test(lower), `app should not say "${word}"`);
+  }
 });
 
 test('landing page mirrors the original Yourkly landing', async () => {

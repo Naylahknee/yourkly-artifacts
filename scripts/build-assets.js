@@ -18,6 +18,7 @@ const WANTED = {
   'stork-fixer-3d.png': 'IMG_STORK_FIXER',
   'stork-builder-3d.png': 'IMG_STORK_BUILDER',
   'stork-polisher-3d.png': 'IMG_STORK_POLISHER',
+  'stork-empty-basket.png': 'IMG_STORK_EMPTY_BASKET',
 };
 
 const files = readdirSync(pub).filter(f => f in WANTED).sort();
