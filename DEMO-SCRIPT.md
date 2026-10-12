@@ -28,11 +28,13 @@ If the dashboard is empty, the 4-step onboarding tour appears instead. Walk thro
 
 > "First run shows you around: start a project, send in three helpers, compare their work, keep the winner. That tour is the onboarding. What I am about to show you is the product it onboards you into."
 
+Open My Projects from the sidebar to show the project list: the stork delivery animation, "We found N projects," and the rows with their plain-language status. If it is empty, the stork waits with an empty basket: "Your basket is empty. Start your first project and the stork will carry it home."
+
 ## Shot 3 — Open a project and edit (2:00-3:30)
 
-Open a project (or start one from the dashboard).
+Open a project (or add one from My Projects).
 
-> "Inside a project, I see my files. I can open one and just write. When I am done, I save it as a new version and say what changed, in my own words."
+> "Inside a project, the sidebar is the map: Project Home, Updates, Things to Do, Project Files, What Changed, Save Points, Separate Versions, and more. I open Project Files, open a file, and just write. When I am done, I save it as a new version and say what changed, in my own words."
 
 Edit a file, type a label like "rewrote the intro," click "Save as a new version."
 
@@ -40,7 +42,7 @@ Edit a file, type a label like "rewrote the intro," click "Save as a new version
 
 ## Shot 4 — Save points (3:30-4:30)
 
-Scroll to the save points section.
+Open Save Points in the sidebar.
 
 > "Every version I save becomes a save point with my label on it. And if I ever mess up, I can go back to any earlier version. Going back saves my current work first as its own version, so nothing is ever lost."
 
@@ -48,7 +50,7 @@ Optionally click "Go back to this version" on an older save point to show it wor
 
 ## Shot 5 — Send in the helpers (4:30-6:00)
 
-> "Now the part I built this for. From any project, I can send in three AI helpers. Each one gets its own private copy of the project and a written task. They all work at the same time without stepping on each other."
+> "Now the part I built this for. On Project Home there is a button: send in the helpers. Three AI helpers, each one gets its own safe copy of the project and a written task. They all work at the same time without stepping on each other."
 
 Click "Send in the helpers." Show the three agent cards with their stork mascots appearing.
 
@@ -74,6 +76,6 @@ End screen: repo URL + "MIT licensed, try it yourself."
 
 ## Tips
 
-- Do one full run before recording so the timing feels natural. Delete the practice project from the dashboard afterward so the recording starts clean.
+- Do one full run before recording so the timing feels natural. Delete the practice project afterward (Project settings, at the bottom of the sidebar) so the recording starts clean.
 - If a step is slow (pushes take a few seconds), narrate over it: "the helpers are saving their work now."
 - Keep the tab at a readable zoom level.

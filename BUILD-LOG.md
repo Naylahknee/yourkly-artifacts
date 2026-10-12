@@ -32,3 +32,29 @@
 - Push local commits once the repo exists.
 - Contest submission itself (video + form) is NaLonni's to do; DEMO-SCRIPT.md is ready.
 - No uptime alert wired yet (health endpoint exists; alerting is a follow-up).
+
+## 2026-10-12 — Full page map mirrored (all 20 original screens)
+
+Rewrote src/ui.js (~2900 lines) to mirror every screen from the original Yourkly
+page-map screenshots: Home, My Projects, Recent Activity, Account, Add a project,
+Help hub (6 topics), and the full project page set. GitHub removed entirely from
+user-facing copy; no dead buttons ("Put It on the Web" omitted, "Continue in..."
+kept as the agreed empty state, "Who Can See It" is an honest placeholder).
+
+- Helpers are the contest upgrade inside the project view: Project Home promo
+  with the mascot trio, Make an Update flows into Separate Versions, compare in
+  plain words with mascots, Keep this one with confirm.
+- Empty-basket stork (public/stork-empty-basket.png, new) on the My Projects
+  zero state: "Your basket is empty. Start your first project and the stork
+  will carry it home."
+- Upgraded stork delivery animation (parcel drops into the basket with a bounce
+  and glow), mascot working states with shimmer progress, page transitions,
+  prefers-reduced-motion fallbacks throughout.
+- Backend/API/Artifacts logic untouched. Things-to-Do list is the only
+  client-side storage (localStorage, per project).
+- Verified: src/ui.js passes node --check; served /app inline script passes
+  node --check; rendered HTML has no GitHub/Artifacts/Cloudflare/Workers/git
+  jargon in user-visible text; element-ID cross-check clean.
+- `npm test`: 14/14 passing against the live worker.
+- Deployed: https://yourkly-artifacts.madincrease.workers.dev
+- Pushed to Naylahknee/yourkly-artifacts main (remote 22838aff).
