@@ -2,11 +2,15 @@
 
 Record your screen with voiceover. Plain language throughout. Total: about 8 minutes. This script shows the full product, not just the tour.
 
-## Shot 1 — The idea (0:00-1:00)
+## Shot 1 — The front door (0:00-1:15)
 
-Open on the homepage. Point out the stork and wordmark lockup in the header. Say something like:
+Open on the landing page. Point out the stork and wordmark lockup in the hero. Say something like:
 
 > "GitHub was built for humans who write code. But the next generation of software is being written by AI agents, hundreds of them, all at once. So what does version control look like when the builders aren't people? This is my answer: Yourkly on Artifacts. Version control for people, and agents, who never want to hear the word git."
+
+Scroll down past "Meet the team" (the three stork helpers with their mascots) and the three steps of how it works. Then click "Start a project" to walk through the front door into the workspace.
+
+> "That landing page is the front door. Everything behind it is the product."
 
 ## Shot 2 — The dashboard (1:00-2:00)
 

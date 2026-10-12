@@ -2,7 +2,7 @@
 // Full product: projects backed by Artifacts repos, a writing editor,
 // labeled save points with history and restore, and AI agents that work
 // on their own copies. No git jargon anywhere the user can see.
-import { renderUI } from './ui.js';
+import { renderLanding, renderApp } from './ui.js';
 import { pushCommit } from './gitmini.js';
 
 const STARTER_FILES = {
@@ -208,7 +208,11 @@ export default {
     const method = request.method;
 
     if (path === '/' && method === 'GET') {
-      return new Response(renderUI(), { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
+      return new Response(renderLanding(), { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
+    }
+
+    if (path === '/app' && method === 'GET') {
+      return new Response(renderApp(), { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
     }
 
     if (path === '/api/health' && method === 'GET') {

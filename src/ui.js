@@ -8,14 +8,7 @@ import {
   IMG_STORK_FIXER, IMG_STORK_BUILDER, IMG_STORK_POLISHER,
 } from './assets.js';
 
-export function renderUI() {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yourkly on Artifacts</title>
-<style>
+const PAGE_STYLE = `
   :root { --ink: #1a1a1a; --muted: #666; --line: #e5e5e5; --bg: #fafafa; --purple: #5b4bd6; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.6; }
@@ -74,7 +67,81 @@ export function renderUI() {
   .winner { border: 2px solid #276749; }
   .back { color: var(--muted); cursor: pointer; font-size: 15px; margin-bottom: 16px; display: inline-block; }
   .back:hover { color: var(--ink); }
-</style>
+  /* Landing page */
+  .hero { text-align: center; padding: 56px 0 40px; }
+  .hero-lockup { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 20px; }
+  .hero-lockup .brand-stork { width: 84px; height: 84px; object-fit: contain; }
+  .hero-lockup .brand-wordmark { height: 56px; width: auto; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 660px; margin: 0 auto 28px; }
+  .cta { display: inline-block; background: var(--ink); color: #fff; border: none; padding: 14px 34px; font-size: 17px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+  .cta:hover { opacity: 0.85; }
+  .team { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 8px; }
+  .teammate { text-align: center; }
+  .teammate img.mascot { width: 128px; height: 128px; object-fit: contain; display: block; margin: 0 auto 12px; }
+  .teammate h3 { margin: 0 0 8px; font-size: 18px; }
+  .teammate p { margin: 0; }
+  .section-sub { color: var(--muted); margin: -6px 0 18px; }
+  .cta-row { text-align: center; margin: 36px 0 8px; }
+`;
+
+export function renderLanding() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yourkly on Artifacts</title>
+<style>${PAGE_STYLE}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-lockup">
+      <img class="brand-stork" src="${IMG_YOURKLY_STORK}" alt="">
+      <img class="brand-wordmark" src="${IMG_YOURKLY_WORDMARK}" alt="Yourkly">
+    </div>
+    <p class="tagline">Version control for people who never want to hear the word git.</p>
+    <p class="lede">Yourkly Artifacts is version control rebuilt on Cloudflare Workers and Artifacts. Save your work as labeled versions, go back to any of them, and send in a team of AI helpers that all work on your project at the same time. No terminals, no jargon.</p>
+    <a class="cta" href="/app">Start a project</a>
+  </div>
+  <h2 class="section-title">Meet the team</h2>
+  <p class="section-sub">Three AI helpers. Each one gets its own copy of your project and works at the same time as the others.</p>
+  <div class="team">
+    <div class="card teammate">
+      <img class="mascot" src="${IMG_STORK_FIXER}" alt="">
+      <h3>The Fixer</h3>
+      <p>Mends broken files, like typos and small mistakes.</p>
+    </div>
+    <div class="card teammate">
+      <img class="mascot" src="${IMG_STORK_BUILDER}" alt="">
+      <h3>The Builder</h3>
+      <p>Writes brand new files, like a summary of your project.</p>
+    </div>
+    <div class="card teammate">
+      <img class="mascot" src="${IMG_STORK_POLISHER}" alt="">
+      <h3>The Polisher</h3>
+      <p>Tidies up your files so everything reads clean.</p>
+    </div>
+  </div>
+  <h2 class="section-title">How it works</h2>
+  <div class="card"><h2><span class="step-num">1</span> Start a project</h2><p>Give it a name. We set up a safe place for it and save the first version.</p></div>
+  <div class="card"><h2><span class="step-num">2</span> Send in the helpers</h2><p>Each helper gets its own private copy of the project and a written task. They work at the same time without stepping on each other.</p></div>
+  <div class="card"><h2><span class="step-num">3</span> Keep the winner</h2><p>Compare what each helper changed, in plain words. Keep the one you like. The other copies stay saved.</p></div>
+  <div class="cta-row"><a class="cta" href="/app">Start a project</a></div>
+  <footer>Yourkly on Cloudflare Artifacts. MIT licensed. Built for the agentic era.</footer>
+</div>
+</body>
+</html>`;
+}
+
+export function renderApp() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yourkly on Artifacts</title>
+<style>${PAGE_STYLE}</style>
 </head>
 <body>
 <div class="wrap">

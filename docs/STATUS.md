@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-12 (Phase 2 complete)
+**Last updated:** 2026-10-12 (mascots shipped)
 
 ## What is working
 
@@ -13,12 +13,13 @@
   - Delete project (also removes its agent copies).
 - Everything stored in Artifacts repos. No GitHub, no localStorage.
 - Real logo lockup in the header: stork + wordmark side by side (originals untouched).
-- Per-agent stork mascots (fixer, builder, polisher) shown on agent cards and the compare screen.
+- Per-agent stork mascots shown on agent cards and the compare screen (3D set in the UI; line-art set also shipped in public/).
 - Artifacts binding read APIs mapped exactly: `log()` entries are `{hash, treeHash, message, parents, authoredAt, committedAt}`; `readTree(treeHash)` returns `[{name, mode, hash, type}]`; `readFile()` returns a Blob (decode with `.text()`). Pushes must use the full ref `refs/heads/main`; pushing to bare `main` silently creates an unresolvable ref.
 - `/api/health` returns ok.
 - `npm test`: 5/5 passing (health, no-jargon homepage, full project lifecycle, agents flow, legacy onboarding flow).
 - No git jargon anywhere user-facing (homepage HTML scanned in tests).
-- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT).
+- Per-agent stork mascots in TWO sets, NaLonni approved: 3D set (soft stylized 3D render, embedded in the UI) and line-art set (flat line art matching the logo). Each stork carries a woven basket of files from its beak; the fixer's basket holds a bandaged file, the builder's holds fresh files, the polisher's holds sparkling files. Old pre-basket versions deleted.
+- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT). Latest commit f4cab2f7 "Mascots: final basket-carrying agent storks in 3D and line-art sets, embedded in UI, demo script updated" (author Naylahknee).
 
 ## What is still incomplete
 

@@ -36,6 +36,22 @@ test('homepage loads with no git jargon', async () => {
   }
 });
 
+test('workspace lives behind /app', async () => {
+  const r = await fetch(BASE + '/app');
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.ok(html.includes('id="app"'), 'app shell present');
+  assert.ok(html.includes('Your projects'), 'workspace nav present');
+});
+
+test('landing page links into the workspace', async () => {
+  const r = await fetch(BASE + '/');
+  const html = await r.text();
+  assert.ok(html.includes('href="/app"'), 'CTA leads to /app');
+  assert.ok(html.includes('Meet the team'), 'team section present');
+  assert.ok(html.includes('The Fixer') && html.includes('The Builder') && html.includes('The Polisher'), 'all three helpers named');
+});
+
 test('full product cycle: create, edit, save points, restore, delete', async () => {
   const name = 'test-cycle-' + Date.now().toString(36);
 
