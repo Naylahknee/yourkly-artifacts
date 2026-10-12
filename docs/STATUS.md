@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-12 (full page map: every original Yourkly screen mirrored)
+**Last updated:** 2026-10-12 (help topics reference-checked against the original's screenshots)
 
 ## What is working
 
@@ -26,14 +26,14 @@
   - Continue in...: kept as the agreed empty state ("Nothing here yet."). Not built, per owner decision.
   - Who Can See It: honest single card ("Only you. Nobody else can open it, find it, or see your files.").
   - Settings: project name (read-only), visibility ("Only you"), delete with type-the-name confirm.
-  - Help hub with search and all 6 topics: Getting started, How Yourkly works (4 steps, GitHub-free), What are you trying to do? (task cards + step-by-step walkthroughs), Plain-English glossary (no GitHub column), When something looks wrong (accordions), Contact support (kind cards, real issue-report link).
+  - Help hub with search and all 6 topics, reference-checked 2026-10-12 against the original's screenshots: Getting started, How Yourkly works (4 steps in 2-column layout with Previous/Next, step 1 is the email sign-in step, 'Where you'll see this' boxes), What are you trying to do? (all 8 task cards in 2-col grid including 'I want to bring a project from GitHub', plus Step by step), Plain-English glossary (filter plus Yourkly/Technical-term toggle pills, 'Also called' column only where the plainer word teaches), When something looks wrong (accordions with the adapted entries), Contact support (kind cards, plain 'Open a report' button opening the repo issues page). Sidebar Help expands into a HELP TOPICS submenu with the active topic highlighted purple; it collapses when navigating away.
 - Helpers (contest upgrade, in Yourkly's visual language): fixer/builder/polisher with 3D mascots; working states animate; compare in plain words; "Keep this one" with confirm; losing copies stay saved. Agents appear only in the project view, never on the dashboard or landing.
 - Everything stored in Artifacts repos. No GitHub, no localStorage except the Things-to-Do list.
 - No user-facing mention of Artifacts, Cloudflare, or Workers. No git jargon. No em-dashes.
 - `/api/health` returns ok.
-- `npm test`: 14/14 passing (health, no-jargon homepage, workspace behind /app with full nav, landing mirrors original, no tech/GitHub mentions on landing, every screen group served, continue-in empty state, empty-basket mascot, agent mascots, upgraded animations, no GitHub/Artifacts/Cloudflare/Workers in user text, full project lifecycle, agents flow, legacy onboarding flow).
+- `npm test`: 27/27 passing (health, no-jargon homepage, workspace behind /app with full nav, landing mirrors original, no tech/GitHub mentions on landing, every screen group served, continue-in empty state, empty-basket mascot, agent mascots, upgraded animations, no GitHub/Artifacts/Cloudflare/Workers in user text, full project lifecycle, agents flow, legacy onboarding flow, sidebar Help submenu, 6 help-topic reference checks).
 - Per-agent stork mascots in TWO sets, NaLonni approved: 3D set (embedded in the UI) and line-art set (alternates in public/). Each stork carries a woven basket of files from its beak. Plus the empty-basket stork for the zero-projects state.
-- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT), remote main at 22838aff.
+- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT), remote main at b5679ce5.
 
 ## What is still incomplete
 
