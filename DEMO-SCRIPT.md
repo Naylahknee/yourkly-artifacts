@@ -40,7 +40,7 @@ Optionally click "Go back to this version" on an older save point to show it wor
 
 Click "Send in the helpers." Show the three agent cards with their stork mascots appearing.
 
-> "The fixer has a wrench. The builder wears the hard hat. The polisher brings the sparkles. Each copy carries its task description right alongside the code. Six months from now, you don't just see what changed, you see why."
+> "Each stork carries a little woven basket from its beak, full of purple folders. The fixer's basket has a folder with a bandage on it. The builder's has a folder with a plus sign. And the polisher's has sparkles rising above the folders. Each copy carries its task description right alongside the code. Six months from now, you don't just see what changed, you see why."
 
 ## Shot 6 — Compare and keep (6:00-7:30)
 
