@@ -117,6 +117,15 @@ function safeName(name) {
   return String(name || 'my-project').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'my-project';
 }
 
+// The repo name is a safe slug; the display name is the user's exact text,
+// kept in the repo description so it survives reloads on any device.
+const GENERIC_DESCRIPTIONS = new Set(['Yourkly project', 'Yourkly Artifacts demo project']);
+function displayNameOf(info, fallback) {
+  const d = info && typeof info.description === 'string' ? info.description.trim() : '';
+  if (d && !GENERIC_DESCRIPTIONS.has(d)) return d;
+  return fallback;
+}
+
 const isAgentCopy = (name) => name.includes('-agent-');
 const isProductProject = (name) => !isAgentCopy(name);
 
@@ -223,19 +232,25 @@ export default {
     if (path === '/api/projects' && method === 'GET') {
       try {
         const repos = (await listRepos(env)).map(repoNameOf).filter(isProductProject);
-        const projects = [];
-        for (const name of repos) {
+        // One log call per repo (limit 50); latest is entries[0]. All repos in parallel.
+        const projects = await Promise.all(repos.map(async (name) => {
           try {
-            const latest = await latestSavePoint(env, name);
-            const history = await savePointHistory(env, name);
-            projects.push({
+            const repo = await env.ARTIFACTS.get(name);
+            const [log, info] = await Promise.all([
+              repo.log({ ref: 'main', limit: 50 }).catch(() => []),
+              repo.info().catch(() => ({})),
+            ]);
+            const entries = (Array.isArray(log) ? log : []).map(savePointOf).filter((s) => s && s.sha);
+            const latest = entries[0] || null;
+            return {
               name,
+              displayName: displayNameOf(info, name),
               lastSaved: latest ? latest.label : 'No versions yet',
               lastTime: latest ? latest.time : null,
-              savePoints: history.length,
-            });
-          } catch { projects.push({ name, lastSaved: 'No versions yet', lastTime: null, savePoints: 0 }); }
-        }
+              savePoints: entries.length,
+            };
+          } catch { return { name, displayName: name, lastSaved: 'No versions yet', lastTime: null, savePoints: 0 }; }
+        }));
         return json({ projects });
       } catch (e) {
         return json({ error: 'Could not list projects: ' + (e.message || e) }, 500);
@@ -245,10 +260,11 @@ export default {
     if (path === '/api/projects' && method === 'POST') {
       try {
         const { name } = await request.json();
-        const safe = safeName(name);
+        const displayName = String(name || 'my-project').trim().slice(0, 60) || 'my-project';
+        const safe = safeName(displayName);
         try { await env.ARTIFACTS.delete(safe); } catch { /* fresh start */ }
         const created = await env.ARTIFACTS.create(safe, {
-          description: 'Yourkly project',
+          description: displayName,
           setDefaultBranch: 'main',
         });
         const sha = await pushCommit({
@@ -256,7 +272,7 @@ export default {
           ref: 'refs/heads/main', parentSha: null,
           files: STARTER_FILES, message: 'First version of the project',
         });
-        return json({ name: created.name, sha });
+        return json({ name: created.name, displayName, sha });
       } catch (e) {
         return json({ error: 'Could not start the project: ' + (e.message || e) }, 500);
       }
@@ -272,7 +288,9 @@ export default {
         try {
           const files = await readAllFiles(env, name, 'main');
           const savePoints = await savePointHistory(env, name);
-          return json({ name, files: Object.keys(files).sort(), savePoints });
+          const repo = await env.ARTIFACTS.get(name);
+          const info = await repo.info().catch(() => ({}));
+          return json({ name, displayName: displayNameOf(info, name), files: Object.keys(files).sort(), savePoints });
         } catch (e) {
           return json({ error: 'Could not open the project: ' + (e.message || e) }, 500);
         }
@@ -428,12 +446,13 @@ export default {
     if (path === '/api/demo/project' && method === 'POST') {
       try {
         const { name } = await request.json();
-        const safe = safeName(name || 'demo-project');
+        const displayName = String(name || 'demo-project').trim().slice(0, 60) || 'demo-project';
+        const safe = safeName(displayName);
         for (const n of [safe, ...AGENT_DEFS.map((t) => `${safe}-agent-${t.id}`)]) {
           try { await env.ARTIFACTS.delete(n); } catch { /* did not exist */ }
         }
         const created = await env.ARTIFACTS.create(safe, {
-          description: 'Yourkly Artifacts demo project',
+          description: displayName,
           setDefaultBranch: 'main',
         });
         const sha = await pushCommit({
@@ -441,7 +460,7 @@ export default {
           ref: 'refs/heads/main', parentSha: null,
           files: STARTER_FILES, message: 'First version of the project',
         });
-        return json({ name: created.name, remote: created.remote, token: created.token, sha });
+        return json({ name: created.name, displayName, remote: created.remote, token: created.token, sha });
       } catch (e) {
         return json({ error: 'Could not start the project: ' + (e.message || e) }, 500);
       }

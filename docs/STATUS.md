@@ -11,7 +11,8 @@
   - Dashboard: "Good morning." greeting, "New project" button, "Continue where you left off" hero card, "Recent projects" cards, "Recent activity" feed. Empty state keeps the 4-step onboarding tour.
   - My Projects: stork delivery animation (upgraded: smoother flight, parcel drops into the basket with a bounce and glow), "We found N projects.", "Your projects are saved and kept safe.", rows with "Up to date" pill, "Last touched X ago", "Open project", "Add a project". Empty state: the empty-basket stork with "Your basket is empty. Start your first project and the stork will carry it home."
   - Recent Activity: "Timeline" page, save points newest first across projects.
-  - Account: honest no-account page ("You are using Yourkly without an account.", "Your projects are saved and kept safe.").
+  - Account: honest no-account page ("You are using Yourkly without an account.", "Your projects are saved and kept safe."). Includes a "Preview the pill" link to the profile preview.
+  - Profile preview (new): floating profile pill mirroring the original widget. Dark rounded pill with the stork avatar circle, "Hello, I'm / Your profile", and a + button that expands to the profile state (back button collapses). Same transitions, reduced-motion fallback, mobile responsive. Reached from the Account page.
   - Add a project: "Make your project" form (name + optional "What are you building?"); the description is saved as "About this project.md". The GitHub-import wizard options are gone (they cannot work here).
   - Project Home: status row ("Main version · vN | Last Save Point X ago | Everything saved"), "Project health" card with a working "Check again", "Send in the helpers" promo with the mascot trio, "Recently saved" card, "Make an update" + "See everything that changed".
   - Updates: helper versions as update rows ("Ready to compare", next step "Compare and keep one"), "Saved" section below.

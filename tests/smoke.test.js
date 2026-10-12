@@ -58,7 +58,7 @@ test('app serves every screen group from the page map', async () => {
     'Project files', 'What changed', 'Restore an earlier version',
     'Separate versions', 'Continue in', 'Who Can See It', 'Project settings',
     'Plain-English glossary', 'When something looks wrong', 'Contact support',
-    'How Yourkly works', 'Send in the helpers', 'Keep this one',
+    'How Yourkly works', 'Send in the helpers', 'Keep this one', 'Profile preview',
   ];
   for (const s of screens) {
     assert.ok(html.includes(s), 'screen copy present: ' + s);
@@ -70,6 +70,16 @@ test('continue-in page is the agreed empty state', async () => {
   const html = await r.text();
   assert.ok(html.includes('Nothing here yet.'), 'continue-in empty state present');
   assert.ok(!html.includes('What Yourkly is packing'), 'no brief-builder UI');
+});
+
+test('profile preview view renders the pill', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('Profile preview'), 'preview page copy present');
+  assert.ok(html.includes('pp-pill'), 'pill markup present');
+  assert.ok(html.includes('Hello, I'), 'greeting present');
+  assert.ok(html.includes('Preview the pill'), 'reachable from the Account page');
+  assert.ok(html.includes('profile-preview'), 'view route wired');
 });
 
 test('empty-basket mascot wired into the My Projects empty state', async () => {

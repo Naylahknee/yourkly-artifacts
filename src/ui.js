@@ -257,6 +257,29 @@ const PAGE_STYLE = `
   .account-card { background: #fff; border: 1px solid var(--yp-grey-light); border-radius: 14px; padding: 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
   .account-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--yp-lilac-bg); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: var(--yp-purple); flex-shrink: 0; }
 
+  /* Profile preview: floating pill, mirrors the original widget */
+  .pp-stage { display: grid; place-items: center; padding: 56px 20px; }
+  .pp-pill { --pp-ease: cubic-bezier(.22,1,.36,1); width: 250px; height: 80px; background: #0a0a0b; border-radius: 999px; color: #fff; box-shadow: 0 22px 48px rgba(12,12,18,.19), 0 4px 12px rgba(12,12,18,.12); overflow: hidden; transition: width .56s var(--pp-ease), height .56s var(--pp-ease), border-radius .56s var(--pp-ease); }
+  .pp-pill.open { width: min(470px, calc(100vw - 40px)); height: 168px; border-radius: 28px; }
+  .pp-collapsed { display: flex; align-items: center; height: 100%; padding: 7px; gap: 4px; }
+  .pp-pill.open .pp-collapsed { display: none; }
+  .pp-avatar { width: 66px; height: 66px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.94); overflow: hidden; background: #fff; flex: 0 0 auto; }
+  .pp-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .pp-copy { flex: 1; min-width: 0; border: 0; padding: 0 10px; background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+  .pp-copy span { display: block; color: #a2a2aa; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .pp-copy strong { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pp-plus { width: 62px; height: 62px; border-radius: 50%; border: 0; background: #34e76c; color: #fff; font-size: 30px; line-height: 1; cursor: pointer; flex: 0 0 auto; }
+  .pp-plus:active { transform: scale(.92); }
+  .pp-expanded { display: none; height: 100%; padding: 18px 20px; align-items: center; gap: 14px; }
+  .pp-pill.open .pp-expanded { display: flex; }
+  .pp-id { flex: 1; min-width: 0; }
+  .pp-id p { margin: 0 0 2px; color: #a2a2aa; font-size: 12px; font-weight: 600; }
+  .pp-id h2 { margin: 0 0 6px; color: #fff; font-size: 20px; letter-spacing: -.02em; }
+  .pp-id small { color: #b1b1b9; font-size: 13px; line-height: 1.5; }
+  .pp-back { width: 40px; height: 40px; border-radius: 50%; border: 0; background: #242428; color: #fff; font-size: 18px; cursor: pointer; flex: 0 0 auto; }
+  @media (max-width: 480px) { .pp-stage { padding: 36px 14px; } .pp-pill.open { height: 190px; } .pp-avatar { width: 58px; height: 58px; } .pp-plus { width: 54px; height: 54px; } }
+  @media (prefers-reduced-motion: reduce) { .pp-pill, .pp-plus { transition-duration: 1ms; } }
+
   /* Project home */
   .project-home-title { font-size: 30px; font-weight: 700; letter-spacing: -.03em; margin-bottom: 8px; text-transform: capitalize; }
   .project-desc { font-size: 15.5px; color: var(--yp-ink-soft); margin-bottom: 16px; max-width: 62ch; }
@@ -681,9 +704,12 @@ const MASCOT_IMG = {
 const IMG_EMPTY_BASKET = "${IMG_STORK_EMPTY_BASKET}";
 const app = document.getElementById('app');
 const state = {
-  view: 'home', project: null, files: [], savePoints: [],
-  openFile: null, agents: [], updateGoal: '', helpTopic: 'getting-started',
+  view: 'home', project: null, displayName: null, files: [], savePoints: [],
+  openFile: null, agents: [], updateGoal: '', helpTopic: 'getting-started', justKept: '',
 };
+// Human-visible project name. state.project stays the safe slug used in API paths.
+function projLabel() { return state.displayName || state.project || ''; }
+function clearProjectState() { state.project = null; state.displayName = null; }
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -714,12 +740,27 @@ function fileCountLine(n, m) {
   return f + ' \\u00b7 ' + m + ' Save Point' + (m === 1 ? '' : 's');
 }
 async function api(path, method, body) {
-  const r = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-  const j = await r.json().catch(function() { return {}; });
-  if (!r.ok) throw new Error(j.error || 'Something went wrong');
-  return j;
+  const ctrl = new AbortController();
+  const timer = setTimeout(function() { ctrl.abort(); }, 30000);
+  try {
+    const r = await fetch(path, { method: method || 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal: ctrl.signal });
+    const j = await r.json().catch(function() { return {}; });
+    if (!r.ok) throw new Error(j.error || 'Something went wrong');
+    return j;
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('That took too long. Check your connection and try again.');
+    throw e;
+  } finally { clearTimeout(timer); }
 }
 function errBox(e) { return '<div class="error-box">' + esc(e.message || 'Something went wrong') + '</div>'; }
+function retryBox() {
+  return '<div class="screen-padded">' + errBox(new Error('That took too long. Check your connection and try again.')) +
+    '<p><button class="pl-btn-primary" id="retryLoad">Try again</button></p></div>';
+}
+function bindRetry(viewName) {
+  const b = document.getElementById('retryLoad');
+  if (b) b.onclick = function() { go(viewName); };
+}
 
 /* ---------- Navigation: mirrors the original app's nav ---------- */
 const GLOBAL_NAV = [
@@ -744,7 +785,7 @@ function renderNav(activeView) {
     document.getElementById(id).classList.toggle('hidden', !inProject);
   });
   if (inProject) {
-    const label = state.project;
+    const label = projLabel();
     document.getElementById('sideProjectLabel').textContent = label;
     document.getElementById('drawerProjectLabel').textContent = label;
     const p = PROJECT_NAV.map(function(n) { return navItem(n[0], n[1], activeView === n[0]); }).join('');
@@ -782,6 +823,7 @@ function go(view, arg) {
   else if (view === 'projects') showProjects();
   else if (view === 'activity') showActivity();
   else if (view === 'account') showAccount();
+  else if (view === 'profile-preview') showProfilePreview();
   else if (view === 'new') showNewProjectForm();
   else if (view === 'help') showHelp(arg || 'getting-started');
   else if (view === 'project') showProject(state.project);
@@ -800,7 +842,7 @@ function backToHome() {
   return '<button class="back-link" data-go="home">\\u2190 Home</button>';
 }
 function backToProject() {
-  return '<button class="back-link" data-go="project">\\u2190 ' + esc(state.project) + '</button>';
+  return '<button class="back-link" data-go="project">\\u2190 ' + esc(projLabel()) + '</button>';
 }
 function bindGoButtons(root) {
   (root || document).querySelectorAll('[data-go]').forEach(function(el) {
@@ -810,6 +852,7 @@ function bindGoButtons(root) {
 async function loadProject(name) {
   const j = await api('/api/projects/' + encodeURIComponent(name));
   state.project = name;
+  state.displayName = j.displayName || name;
   state.files = j.files || [];
   state.savePoints = j.savePoints || [];
   state.openFile = null;
@@ -820,13 +863,13 @@ async function loadProject(name) {
 /* ---------- Dashboard (Home) ---------- */
 async function showDashboard() {
   renderNav('home');
-  state.view = 'home'; state.project = null;
+  state.view = 'home'; clearProjectState();
   app.innerHTML = '<div class="screen-padded"><p>Getting your projects...</p></div>';
   let projects = [];
   try {
     const j = await api('/api/projects');
     projects = (j.projects || []).slice();
-  } catch (e) { app.innerHTML = '<div class="screen-padded">' + errBox(e) + '</div>'; return; }
+  } catch (e) { app.innerHTML = retryBox(); bindRetry('home'); return; }
   if (projects.length === 0) { showOnboarding(); return; }
   projects.sort(function(a, b) { return new Date(b.lastTime || 0) - new Date(a.lastTime || 0); });
 
@@ -835,8 +878,8 @@ async function showDashboard() {
     details = await Promise.all(projects.slice(0, 4).map(async function(p) {
       try {
         const d = await api('/api/projects/' + encodeURIComponent(p.name));
-        return { name: p.name, files: d.files.length, savePoints: d.savePoints, lastTime: p.lastTime };
-      } catch (e) { return { name: p.name, files: 0, savePoints: [], lastTime: p.lastTime }; }
+        return { name: p.name, displayName: p.displayName || p.name, files: d.files.length, savePoints: d.savePoints, lastTime: p.lastTime };
+      } catch (e) { return { name: p.name, displayName: p.displayName || p.name, files: 0, savePoints: [], lastTime: p.lastTime }; }
     }));
   } catch (e) { details = []; }
 
@@ -845,9 +888,9 @@ async function showDashboard() {
   if (most) {
     hero = '<div class="section-label">Continue where you left off</div>' +
       '<section class="home-hero-card">' +
-      '<div class="home-hero-context"><span class="home-hero-project">' + esc(most.name) + '</span>' +
+      '<div class="home-hero-context"><span class="home-hero-project">' + esc(most.displayName || most.name) + '</span>' +
       '<span class="home-hero-separator">\\u00b7</span><span class="home-hero-label">Most recent project</span></div>' +
-      '<h2 class="home-hero-title">' + esc(most.name) + '</h2>' +
+      '<h2 class="home-hero-title">' + esc(most.displayName || most.name) + '</h2>' +
       '<p class="home-hero-goal">' + esc(fileCountLine(most.files, most.savePoints.length)) + '</p>' +
       '<div class="home-hero-actions">' +
       '<button class="pl-btn-primary" id="heroOpen">Open the project</button>' +
@@ -859,7 +902,7 @@ async function showDashboard() {
   details.forEach(function(d) {
     cards += '<div class="home-project-card" data-name="' + esc(d.name) + '">' +
       '<div class="home-project-info">' +
-      '<h3 class="home-project-name">' + esc(d.name) + '</h3>' +
+      '<h3 class="home-project-name">' + esc(d.displayName || d.name) + '</h3>' +
       '<p class="home-project-desc">' + esc(fileCountLine(d.files, d.savePoints.length)) + '</p>' +
       '<p class="home-project-meta">Last touched ' + esc(timeAgo(d.lastTime) || 'recently') + '</p>' +
       '</div><span class="home-project-chevron" aria-hidden="true">\\u203a</span></div>';
@@ -868,7 +911,7 @@ async function showDashboard() {
   let events = [];
   details.forEach(function(d) {
     (d.savePoints || []).slice(0, 3).forEach(function(s) {
-      events.push({ project: d.name, label: s.label, time: s.time });
+      events.push({ project: d.name, displayName: d.displayName || d.name, label: s.label, time: s.time });
     });
   });
   events.sort(function(a, b) { return new Date(b.time || 0) - new Date(a.time || 0); });
@@ -880,7 +923,7 @@ async function showDashboard() {
     events.forEach(function(e) {
       activity += '<div class="home-activity-row"><span class="home-activity-dot" aria-hidden="true"></span><span>' +
         '<span class="home-activity-what">Save Point \\u201c' + esc(e.label) + '\\u201d</span>' +
-        '<span class="home-activity-meta">' + esc(e.project) + ' \\u00b7 ' + esc(timeAgo(e.time)) + '</span></span></div>';
+        '<span class="home-activity-meta">' + esc(e.displayName || e.project) + ' \\u00b7 ' + esc(timeAgo(e.time)) + '</span></span></div>';
     });
   }
 
@@ -918,13 +961,13 @@ function storkDelivery(count) {
 }
 async function showProjects() {
   renderNav('projects');
-  state.view = 'projects'; state.project = null;
+  state.view = 'projects'; clearProjectState();
   app.innerHTML = '<div class="screen-padded"><p>Getting your projects...</p></div>';
   let projects = [];
   try {
     const j = await api('/api/projects');
     projects = (j.projects || []).slice();
-  } catch (e) { app.innerHTML = '<div class="screen-padded">' + errBox(e) + '</div>'; return; }
+  } catch (e) { app.innerHTML = retryBox(); bindRetry('projects'); return; }
   projects.sort(function(a, b) { return new Date(b.lastTime || 0) - new Date(a.lastTime || 0); });
 
   let body = '<div class="screen-padded">' +
@@ -945,7 +988,7 @@ async function showProjects() {
       '<p class="projects-count">' + projects.length + ' project' + (projects.length === 1 ? '' : 's') + '.</p>';
     projects.forEach(function(p) {
       body += '<div class="project-row"><div class="project-row-main">' +
-        '<div class="project-row-title"><h3>' + esc(p.name) + '</h3>' +
+        '<div class="project-row-title"><h3>' + esc(p.displayName || p.name) + '</h3>' +
         '<span class="pl-pill pl-pill--green">Up to date</span></div>' +
         '<p class="project-row-desc">' + esc(p.lastSaved || 'No versions yet') + '</p>' +
         '<p class="project-row-meta">Last touched ' + esc(timeAgo(p.lastTime) || 'recently') + ' \\u00b7 ' + (p.savePoints || 0) + ' Save Point' + ((p.savePoints || 0) === 1 ? '' : 's') + '</p>' +
@@ -966,20 +1009,20 @@ async function showProjects() {
 /* ---------- Recent Activity (Timeline) ---------- */
 async function showActivity() {
   renderNav('activity');
-  state.view = 'activity'; state.project = null;
+  state.view = 'activity'; clearProjectState();
   app.innerHTML = '<div class="screen-padded"><p>Getting your activity...</p></div>';
   let projects = [];
   try { projects = (await api('/api/projects')).projects || []; }
-  catch (e) { app.innerHTML = '<div class="screen-padded">' + errBox(e) + '</div>'; return; }
+  catch (e) { app.innerHTML = retryBox(); bindRetry('activity'); return; }
   let events = [];
   try {
     const details = await Promise.all(projects.slice(0, 6).map(async function(p) {
-      try { const d = await api('/api/projects/' + encodeURIComponent(p.name)); return { name: p.name, savePoints: d.savePoints || [] }; }
-      catch (e) { return { name: p.name, savePoints: [] }; }
+      try { const d = await api('/api/projects/' + encodeURIComponent(p.name)); return { name: p.name, displayName: p.displayName || p.name, savePoints: d.savePoints || [] }; }
+      catch (e) { return { name: p.name, displayName: p.displayName || p.name, savePoints: [] }; }
     }));
     details.forEach(function(d) {
       (d.savePoints || []).slice(0, 8).forEach(function(s) {
-        events.push({ project: d.name, what: 'Save Point \\u201c' + s.label + '\\u201d', at: s.time });
+        events.push({ project: d.name, displayName: d.displayName || d.name, what: 'Save Point \\u201c' + s.label + '\\u201d', at: s.time });
       });
     });
   } catch (e) { /* keep what we have */ }
@@ -996,7 +1039,7 @@ async function showActivity() {
     events.slice(0, 30).forEach(function(e) {
       body += '<div class="home-activity-row"><span class="home-activity-dot" aria-hidden="true"></span><span>' +
         '<a class="home-activity-what" data-open="' + esc(e.project) + '">' + esc(e.what) + '</a>' +
-        '<span class="home-activity-meta">' + esc(e.project) + ' \\u00b7 ' + esc(timeAgo(e.at)) + '</span></span></div>';
+        '<span class="home-activity-meta">' + esc(e.displayName || e.project) + ' \\u00b7 ' + esc(timeAgo(e.at)) + '</span></span></div>';
     });
     body += '</div>';
   }
@@ -1011,7 +1054,7 @@ async function showActivity() {
 /* ---------- Account ---------- */
 function showAccount() {
   renderNav('account');
-  state.view = 'account'; state.project = null;
+  state.view = 'account'; clearProjectState();
   app.innerHTML = '<div class="screen-padded screen-narrow">' + backToHome() +
     '<h1 class="page-title">Account</h1>' +
     '<p class="page-sub">How Yourkly knows it is you.</p>' +
@@ -1021,14 +1064,45 @@ function showAccount() {
     '<p>Yourkly works without a login. Your projects are saved and kept safe, and everything stays in your own workspace.</p></div>' +
     '<div class="help-card"><h2>Your projects</h2>' +
     '<p>Only you can open your projects from here. Nothing is shared unless you share it yourself.</p></div>' +
+    '<div class="help-card"><h2>Your profile pill</h2>' +
+    '<p>A small card that says hello for you, anywhere it appears. Take a look at how it looks.</p>' +
+    '<button class="pl-btn" data-go="profile-preview">Preview the pill</button></div>' +
     '</div>';
   bindGoButtons(app);
+}
+
+/* ---------- Profile preview: floating pill, mirrors the original widget ---------- */
+function showProfilePreview() {
+  renderNav('account');
+  state.view = 'profile-preview'; clearProjectState();
+  app.innerHTML = '<div class="screen-padded screen-narrow">' +
+    '<button class="back-link" data-go="account">\\u2190 Account</button>' +
+    '<h1 class="page-title">Profile preview</h1>' +
+    '<p class="page-sub">This is what your profile pill looks like to others.</p>' +
+    '<div class="pp-stage"><div class="pp-pill" id="ppPill">' +
+    '<div class="pp-collapsed">' +
+    '<span class="pp-avatar"><img src="' + IMG_YOURKLY_STORK + '" alt=""></span>' +
+    '<button class="pp-copy" id="ppOpen"><span>Hello, I\\u2019m</span><strong>Your profile</strong></button>' +
+    '<button class="pp-plus" id="ppPlus" aria-label="Open profile">+</button>' +
+    '</div>' +
+    '<div class="pp-expanded">' +
+    '<span class="pp-avatar"><img src="' + IMG_YOURKLY_STORK + '" alt=""></span>' +
+    '<div class="pp-id"><p>Hello, I\\u2019m</p><h2>Your profile</h2>' +
+    '<small>A small card that says hello for you, anywhere it appears.</small></div>' +
+    '<button class="pp-back" id="ppBack" aria-label="Back">\\u2190</button>' +
+    '</div>' +
+    '</div></div></div>';
+  bindGoButtons(app);
+  var pill = document.getElementById('ppPill');
+  document.getElementById('ppOpen').onclick = function() { pill.classList.add('open'); };
+  document.getElementById('ppPlus').onclick = function() { pill.classList.add('open'); };
+  document.getElementById('ppBack').onclick = function() { pill.classList.remove('open'); };
 }
 
 /* ---------- Add a project ---------- */
 function showNewProjectForm() {
   renderNav('new');
-  state.view = 'new'; state.project = null;
+  state.view = 'new'; clearProjectState();
   app.innerHTML = '<div class="screen-padded screen-narrow">' +
     '<button class="back-link" data-go="projects">\\u2190 My Projects</button>' +
     '<h1 class="page-title">Add a project</h1>' +
@@ -1063,6 +1137,7 @@ function showNewProjectForm() {
         } catch (e) { /* description is a nice-to-have */ }
       }
       state.project = j.name;
+      state.displayName = j.displayName || j.name;
       go('project');
     } catch (e) { msg.innerHTML = errBox(e); }
   };
@@ -1084,6 +1159,11 @@ async function showProject(name) {
 }
 function renderProjectHome() {
   const name = state.project;
+  let keptBanner = '';
+  if (state.justKept) {
+    keptBanner = '<div class="ok-banner">Kept the ' + esc(state.justKept) + '\u2019s work. That is the project\u2019s current version now.</div>';
+    state.justKept = '';
+  }
   const total = state.savePoints.length;
   const latest = state.savePoints[0];
 
@@ -1099,8 +1179,8 @@ function renderProjectHome() {
       '<div class="cta-row"><button class="pl-btn-primary" data-go="newupdate">Make an update</button>' +
       '<button class="text-link" data-go="changed">See everything that changed \\u2192</button></div></section>';
 
-  app.innerHTML = '<div class="screen-padded">' + backToHome() +
-    '<h1 class="project-home-title">' + esc(name) + '</h1>' +
+  app.innerHTML = '<div class="screen-padded">' + backToHome() + keptBanner +
+    '<h1 class="project-home-title">' + esc(projLabel()) + '</h1>' +
     '<div class="project-status">' +
     '<span>Main version' + (total ? ' \\u00b7 v' + total : '') + '</span><span class="sep">|</span>' +
     (latest ? '<span>Last Save Point ' + esc(timeAgo(latest.time)) + '</span><span class="sep">|</span>' : '') +
@@ -1222,9 +1302,16 @@ function showNewUpdate() {
       '<div class="newupdate-summary-actions">' +
       '<button class="pl-btn-primary" id="nuSend">Send in the helpers</button>' +
       '<button class="pl-btn" data-go="files">Browse project files</button>' +
-      '<button class="pl-btn" data-go="project">Save task for later</button></div></section>';
+      '<button class="pl-btn" id="nuSaveLater">Save task for later</button></div></section>';
     bindGoButtons(document.getElementById('nuSummary'));
     document.getElementById('nuSend').onclick = function() { go('versions', { send: true }); };
+    document.getElementById('nuSaveLater').onclick = function() {
+      const all = loadTodos();
+      all.unshift({ id: 't' + Date.now().toString(36), text: text, detail: '', done: false });
+      saveTodos(all);
+      state.updateGoal = '';
+      go('todos');
+    };
   };
 }
 
@@ -1657,7 +1744,7 @@ async function renderVersionList() {
   });
   box.innerHTML = html;
   box.querySelectorAll('[data-keep]').forEach(function(b) {
-    b.onclick = function() { keepVersion(parseInt(b.getAttribute('data-keep'), 10), b.getAttribute('data-id')); };
+    b.onclick = function() { askKeepVersion(parseInt(b.getAttribute('data-keep'), 10)); };
   });
 }
 async function sendAgents() {
@@ -1688,17 +1775,40 @@ async function sendAgents() {
   }
   if (btn) btn.disabled = false;
 }
-async function keepVersion(i, winnerId) {
-  const agents = state.agents;
-  const a = agents[i];
+function askKeepVersion(i) {
+  const a = state.agents[i];
   if (!a) return;
-  if (!confirm('Keep the ' + a.name + '\u2019s work? It becomes the project\u2019s current version.')) return;
+  const card = document.getElementById('ver' + i);
+  const btn = card ? card.querySelector('[data-keep]') : null;
+  if (!btn) return;
+  btn.outerHTML = '<div class="keep-confirm" id="keepConfirm"><p>Keep the ' + esc(a.name) + '\u2019s work? It becomes the project\u2019s current version.</p>' +
+    '<div class="cta-row"><button class="pl-btn-primary pl-btn--sm" id="keepYes">Yes, keep it</button>' +
+    '<button class="pl-btn pl-btn--sm" id="keepNo">Not yet</button></div></div>';
+  document.getElementById('keepNo').onclick = function() { renderVersionList(); };
+  document.getElementById('keepYes').onclick = function() { doKeepVersion(i); };
+}
+async function doKeepVersion(i) {
+  const a = state.agents[i];
+  if (!a) return;
+  const box = document.getElementById('keepConfirm');
+  document.querySelectorAll('[data-keep]').forEach(function(b) { b.disabled = true; });
+  const yesBtn = document.getElementById('keepYes');
+  const noBtn = document.getElementById('keepNo');
+  if (yesBtn) yesBtn.disabled = true;
+  if (noBtn) noBtn.disabled = true;
+  if (box) box.innerHTML = '<p class="working-note"><span class="dots">Keeping the ' + esc(a.name) + '\u2019s work...</span></p>';
   try {
-    await api('/api/projects/' + encodeURIComponent(state.project) + '/keep', 'POST', { winnerId: winnerId });
+    await api('/api/projects/' + encodeURIComponent(state.project) + '/keep', 'POST', { winnerId: a.id });
     state.updateGoal = '';
+    state.justKept = a.name;
     await loadProject(state.project);
     go('project');
-  } catch (e) { alert(e.message); }
+  } catch (e) {
+    if (box) box.innerHTML = '<div class="error-box">' + esc(e.message || 'Something went wrong') + '</div>' +
+      '<div class="cta-row"><button class="pl-btn pl-btn--sm" id="keepRetry">Try again</button></div>';
+    const rb = document.getElementById('keepRetry');
+    if (rb) rb.onclick = function() { renderVersionList(); };
+  }
 }
 
 /* ---------- Continue in... (not built: empty state per owner decision) ---------- */
@@ -1730,24 +1840,24 @@ function showSettings() {
   state.view = 'settings';
   app.innerHTML = '<div class="screen-padded screen-narrow">' + backToProject() +
     '<h1 class="page-title">Project settings</h1>' +
-    '<div class="settings-card"><div class="settings-label">' + esc(state.project) + '</div>' +
+    '<div class="settings-card"><div class="settings-label">' + esc(projLabel()) + '</div>' +
     '<div class="settings-body">This is the project\\u2019s name. Names cannot be changed after a project is made.</div></div>' +
     '<div class="settings-card"><div class="settings-label">Who can see this project</div>' +
     '<div class="settings-body">Only you. Your projects are saved and kept safe in your own workspace.</div></div>' +
     '<div class="settings-card settings-card--danger"><div class="settings-label settings-label--danger">Delete this project</div>' +
     '<div class="settings-body">This deletes the project and every Save Point in it. It cannot be undone, and Yourkly will ask you to type the project name first.</div>' +
-    '<label class="settings-hint" for="delConfirm">Type <strong>' + esc(state.project) + '</strong> to confirm.</label>' +
-    '<input type="text" id="delConfirm" placeholder="' + esc(state.project) + '" autocomplete="off">' +
+    '<label class="settings-hint" for="delConfirm">Type <strong>' + esc(projLabel()) + '</strong> to confirm.</label>' +
+    '<input type="text" id="delConfirm" placeholder="' + esc(projLabel()) + '" autocomplete="off">' +
     '<button class="pl-btn pl-btn-danger" id="btnDelete">Delete this project</button><div id="delMsg"></div></div></div>';
   bindGoButtons(app);
   document.getElementById('btnDelete').onclick = async function() {
     const typed = document.getElementById('delConfirm').value.trim();
     const msg = document.getElementById('delMsg');
-    if (typed !== state.project) { msg.innerHTML = '<div class="error-box">Type the project name exactly to confirm.</div>'; return; }
+    if (typed !== projLabel()) { msg.innerHTML = '<div class="error-box">Type the project name exactly to confirm.</div>'; return; }
     msg.innerHTML = '<p>Deleting...</p>';
     try {
       await api('/api/projects/' + encodeURIComponent(state.project), 'DELETE');
-      state.project = null;
+      clearProjectState();
       go('projects');
     } catch (e) { msg.innerHTML = errBox(e); }
   };
@@ -1810,13 +1920,19 @@ function showOnboarding() {
         b.onclick = async function() {
           const i = parseInt(b.getAttribute('data-i'), 10);
           const f = tour.agents[i];
+          b.disabled = true;
+          b.textContent = 'Keeping...';
           cl.querySelectorAll('.agent-card').forEach(function(a) { a.classList.remove('winner'); });
           document.getElementById('obcmp' + i).classList.add('winner');
           try {
             await api('/api/demo/keep', 'POST', { project: tour.project, winnerId: f.id });
             document.getElementById('obDone').textContent = 'Kept ' + f.label + '. The project now has their changes. The other helpers\\u2019 copies are still saved if you ever want to look back.';
             document.getElementById('ob4').classList.remove('hidden');
-          } catch (e) { alert(e.message); }
+          } catch (e) {
+            b.disabled = false;
+            b.textContent = 'Keep this one';
+            document.getElementById('obDone').textContent = 'Could not keep that version: ' + (e.message || 'Something went wrong') + ' Try again.';
+          }
         };
       });
     } catch (e) { list.innerHTML = errBox(e); }
