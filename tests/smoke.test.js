@@ -342,6 +342,21 @@ test('sidebar Help expands into a topics submenu', async () => {
   assert.ok(html.includes('bindHelpTopicClicks'), 'submenu clicks are wired');
 });
 
+test('help: main content has no duplicate topics list (sidebar submenu only)', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  const start = html.indexOf('function showHelp(topic)');
+  assert.ok(start !== -1, 'showHelp located in served script');
+  const end = html.indexOf('function renderHelpTopic', start);
+  assert.ok(end !== -1, 'showHelp bounds located');
+  const src = html.slice(start, end);
+  assert.ok(!src.includes('app-nav-label'), 'no in-page topics list in the help main content');
+  assert.ok(!src.includes('220px 1fr'), 'no two-column help layout in the main content');
+  assert.ok(src.includes('backToHome()'), 'back-to-Home link kept above the help content');
+  // The sidebar submenu must survive: it uses a different class.
+  assert.ok(html.includes('app-nav-sublabel'), 'sidebar topics submenu still exists');
+});
+
 test('help: how-it-works uses the email sign-in step with prev/next navigation', async () => {
   const r = await fetch(BASE + '/app');
   const html = await r.text();

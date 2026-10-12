@@ -2247,16 +2247,11 @@ function showHelp(topic) {
   state.view = 'help';
   state.helpTopic = topic || 'getting-started';
   const t = state.helpTopic;
-  let nav = '<div class="app-nav-label" style="padding-left:0">Help topics</div>';
-  HELP_TOPICS.forEach(function(h) {
-    nav += '<button class="app-nav-item' + (t === h[0] ? ' app-nav-item--active' : '') + '" data-htopic="' + h[0] + '" style="padding-left:0">' + esc(h[1]) + '</button>';
-  });
-  app.innerHTML = '<div class="screen-padded"><div class="home-columns" style="grid-template-columns:220px 1fr">' +
-    '<div><button class="back-link" data-go="home">\\u2190 Home</button>' + nav + '</div>' +
-    '<div><h1 class="page-title">Help</h1>' +
+  app.innerHTML = '<div class="screen-padded">' + backToHome() +
+    '<h1 class="page-title">Help</h1>' +
     '<p class="page-sub">Yourkly is a plain-English way to work on projects. Your projects are saved and kept safe \\u2014 Yourkly just makes it obvious what\\u2019s going on and what to do next.</p>' +
     '<div class="help-search"><input type="text" id="helpSearch" placeholder="Search help \\u2014 try \\u201csave point\\u201d, \\u201chelpers\\u201d, \\u201cundo\\u201d..." aria-label="Search help" autocomplete="off"><div id="helpResults"></div></div>' +
-    '<div id="helpBody"></div></div></div></div>';
+    '<div id="helpBody"></div></div>';
   bindGoButtons(app);
   app.querySelectorAll('[data-htopic]').forEach(function(b) {
     b.onclick = function() { showHelp(b.getAttribute('data-htopic')); };

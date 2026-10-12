@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-12 (landing "Three steps" section added; 50 tests passing)
+**Last updated:** 2026-10-12 (help main-content dedup: topics list now sidebar-only; 44 tests passing)
 
 ## What is working
 
