@@ -82,6 +82,51 @@ const PAGE_STYLE = `
   .teammate p { margin: 0; }
   .section-sub { color: var(--muted); margin: -6px 0 18px; }
   .cta-row { text-align: center; margin: 36px 0 8px; }
+  /* Landing page: adjustment of the original Yourkly landing bones.
+     Movie arc order: friction, characters, resolution, action (last). */
+  body.landing-body { background: #fff; }
+  .landing-shell { max-width: 1240px; margin: 0 auto; padding: 36px 28px 0; }
+  .landing-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 74px; }
+  .landing-header .brand-lockup { cursor: default; }
+  .landing-header .brand-stork { width: 34px; height: 34px; }
+  .landing-header .brand-wordmark { height: 30px; }
+  .landing-signin { color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600; }
+  .landing-signin:hover { color: var(--purple); }
+  .landing-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .93fr); align-items: center; gap: clamp(42px, 7vw, 92px); padding-bottom: 110px; }
+  .landing-hero-copy h1 { margin: 0; max-width: 11ch; font-size: clamp(44px, 5.45vw, 68px); font-weight: 800; line-height: 1.04; letter-spacing: -.045em; }
+  .landing-hero-copy > p { margin: 28px 0 0; max-width: 34ch; color: #555; font-size: clamp(18px, 1.8vw, 21px); line-height: 1.5; }
+  .scroll-hint { display: inline-block; margin-top: 26px; color: var(--muted); font-size: 15px; font-weight: 600; text-decoration: none; }
+  .scroll-hint:hover { color: var(--ink); }
+  .landing-product-wrap { position: relative; min-width: 0; }
+  .landing-stork-peek { position: absolute; z-index: 0; width: min(150px, 27%); right: -28px; top: -80px; pointer-events: none; }
+  .story-card { position: relative; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 26px; box-shadow: 0 24px 60px rgba(23, 23, 36, .10); }
+  .story-card .card-label { display: block; margin-bottom: 18px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .scary-line { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; color: #999; background: #fafafa; border: 1px solid #ededf3; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .scary-line s { text-decoration-color: #c53030; text-decoration-thickness: 2px; }
+  .story-caption { margin: 18px 0 0; color: #555; font-size: 15px; }
+  .landing-trust { padding: 34px 20px; border-top: 1px solid #ededf3; border-bottom: 1px solid #ededf3; color: #555; font-weight: 600; font-size: 17px; line-height: 1.5; text-align: center; }
+  .landing-characters { padding: 110px 0 20px; }
+  .landing-characters h2, .landing-steps h2 { margin: 0 0 12px; font-size: clamp(32px, 3.55vw, 44px); font-weight: 800; line-height: 1.1; letter-spacing: -.035em; }
+  .landing-steps { padding: 90px 0 20px; }
+  .landing-steps h2 { margin-bottom: 56px; max-width: 20ch; }
+  .landing-step-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+  .landing-step-grid article { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px; }
+  .landing-step-grid .num { display: block; margin-bottom: 14px; color: var(--purple); font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+  .landing-step-grid h3 { margin: 0 0 10px; font-size: 24px; font-weight: 700; letter-spacing: -.025em; }
+  .landing-step-grid p { margin: 0; color: #555; font-size: 16px; }
+  .landing-action { text-align: center; padding: 100px 0 110px; }
+  .landing-action h2 { margin: 0 0 28px; font-size: clamp(32px, 3.55vw, 44px); font-weight: 800; letter-spacing: -.035em; }
+  .microcopy { margin: 20px 0 0; color: var(--muted); font-size: 14px; }
+  .landing-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 32px 0 40px; border-top: 1px solid #ededf3; color: var(--muted); font-size: 14px; }
+  @media (max-width: 820px) {
+    .landing-shell { padding: 24px 20px 0; }
+    .landing-header { padding-bottom: 52px; }
+    .landing-hero { grid-template-columns: minmax(0, 1fr); gap: 72px; padding-bottom: 76px; }
+    .landing-hero-copy h1 { font-size: clamp(40px, 12vw, 54px); }
+    .landing-step-grid { grid-template-columns: minmax(0, 1fr); }
+    .landing-characters { padding-top: 76px; }
+    .landing-steps { padding-top: 70px; }
+  }
 `;
 
 export function renderLanding() {
@@ -93,46 +138,84 @@ export function renderLanding() {
 <title>Yourkly on Artifacts</title>
 <style>${PAGE_STYLE}</style>
 </head>
-<body>
-<div class="wrap">
-  <div class="hero">
-    <div class="hero-lockup">
+<body class="landing-body">
+<div class="landing-shell">
+  <header class="landing-header">
+    <div class="brand-lockup">
       <img class="brand-stork" src="${IMG_YOURKLY_STORK}" alt="">
       <img class="brand-wordmark" src="${IMG_YOURKLY_WORDMARK}" alt="Yourkly">
     </div>
-    <p class="tagline">Version control for people who never want to hear the word git.</p>
-    <p class="lede">Yourkly Artifacts is version control rebuilt on Cloudflare Workers and Artifacts. Save your work as labeled versions, go back to any of them, and send in a team of AI helpers that all work on your project at the same time. No terminals, no jargon.</p>
-    <a class="cta" href="/app">Start a project</a>
-  </div>
-  <h2 class="section-title">Meet the team</h2>
-  <p class="section-sub">Three AI helpers. Each one gets its own copy of your project and works at the same time as the others.</p>
-  <div class="team">
-    <div class="card teammate">
-      <img class="mascot" src="${IMG_STORK_FIXER}" alt="">
-      <h3>The Fixer</h3>
-      <p>Mends broken files, like typos and small mistakes.</p>
-    </div>
-    <div class="card teammate">
-      <img class="mascot" src="${IMG_STORK_BUILDER}" alt="">
-      <h3>The Builder</h3>
-      <p>Writes brand new files, like a summary of your project.</p>
-    </div>
-    <div class="card teammate">
-      <img class="mascot" src="${IMG_STORK_POLISHER}" alt="">
-      <h3>The Polisher</h3>
-      <p>Tidies up your files so everything reads clean.</p>
-    </div>
-  </div>
-  <h2 class="section-title">How it works</h2>
-  <div class="card"><h2><span class="step-num">1</span> Start a project</h2><p>Give it a name. We set up a safe place for it and save the first version.</p></div>
-  <div class="card"><h2><span class="step-num">2</span> Send in the helpers</h2><p>Each helper gets its own private copy of the project and a written task. They work at the same time without stepping on each other.</p></div>
-  <div class="card"><h2><span class="step-num">3</span> Keep the winner</h2><p>Compare what each helper changed, in plain words. Keep the one you like. The other copies stay saved.</p></div>
-  <div class="cta-row"><a class="cta" href="/app">Start a project</a></div>
-  <footer>Yourkly on Cloudflare Artifacts. MIT licensed. Built for the agentic era.</footer>
+    <a class="landing-signin" href="/app">Sign in</a>
+  </header>
+
+  <main>
+    <section class="landing-hero">
+      <div class="landing-hero-copy">
+        <h1>Version control is scary.</h1>
+        <p>Git reads like a foreign language. One wrong move and your work is gone, so most people just never touch it. Yourkly Artifacts was built for those people.</p>
+        <a class="scroll-hint" href="#resolution">See how the fear goes away &darr;</a>
+      </div>
+      <div class="landing-product-wrap">
+        <img class="landing-stork-peek" src="${IMG_YOURKLY_STORK}" alt="" aria-hidden="true">
+        <div class="story-card">
+          <span class="card-label">What the other tools say</span>
+          <div class="scary-line"><s>detached HEAD state</s></div>
+          <div class="scary-line"><s>git rebase --onto main</s></div>
+          <div class="scary-line"><s>stash@{0}: WIP on main</s></div>
+          <p class="story-caption">Nobody should need a dictionary to save their work.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-trust">Your projects are saved on Cloudflare. No GitHub needed. Everything in plain words.</section>
+
+    <section class="landing-characters">
+      <h2>Meet the team</h2>
+      <p class="section-sub">Three helpers who work on your project at the same time. Each one carries its own basket of files.</p>
+      <div class="team">
+        <div class="card teammate">
+          <img class="mascot" src="${IMG_STORK_FIXER}" alt="">
+          <h3>The Fixer</h3>
+          <p>Mends broken files, like typos and small mistakes.</p>
+        </div>
+        <div class="card teammate">
+          <img class="mascot" src="${IMG_STORK_BUILDER}" alt="">
+          <h3>The Builder</h3>
+          <p>Writes brand new files, like a summary of your project.</p>
+        </div>
+        <div class="card teammate">
+          <img class="mascot" src="${IMG_STORK_POLISHER}" alt="">
+          <h3>The Polisher</h3>
+          <p>Tidies up your files so everything reads clean.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-steps" id="resolution">
+      <h2>The fear goes away like this.</h2>
+      <div class="landing-step-grid">
+        <article><span class="num">01</span><h3>Save a version any time</h3><p>Give it a plain label, like "rewrote the intro". From then on, that version is safe.</p></article>
+        <article><span class="num">02</span><h3>Go back to any version</h3><p>Changed your mind? Go back. Your current work is saved first as its own version, so nothing is ever lost.</p></article>
+        <article><span class="num">03</span><h3>Send in the helpers</h3><p>Each helper takes its own copy and works at the same time. You compare their work in plain words and keep the winner.</p></article>
+      </div>
+    </section>
+
+    <section class="landing-action">
+      <h2>Ready when you are.</h2>
+      <a class="cta" href="/app">Start a project</a>
+      <p class="microcopy">No account needed to start. No GitHub needed.</p>
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <span>&copy; 2026 Yourkly</span>
+    <span>MIT licensed</span>
+  </footer>
 </div>
 </body>
 </html>`;
 }
+
 
 export function renderApp() {
   return `<!doctype html>

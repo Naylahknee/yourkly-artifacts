@@ -4,11 +4,27 @@ Record your screen with voiceover. Plain language throughout. Total: about 8 min
 
 ## Shot 1 — The front door (0:00-1:15)
 
-Open on the landing page. Point out the stork and wordmark lockup in the hero. Say something like:
+Open on the landing page. It tells the story like a movie arc, so follow it in order. Say something like:
 
-> "GitHub was built for humans who write code. But the next generation of software is being written by AI agents, hundreds of them, all at once. So what does version control look like when the builders aren't people? This is my answer: Yourkly on Artifacts. Version control for people, and agents, who never want to hear the word git."
+> "GitHub was built for humans who write code. But the next generation of software is being written by AI agents, hundreds of them, all at once. So what does version control look like when the builders aren't people? This is my answer: Yourkly on Artifacts."
 
-Scroll down past "Meet the team" (the three stork helpers with their mascots) and the three steps of how it works. Then click "Start a project" to walk through the front door into the workspace.
+Point at the headline: "Version control is scary." The friction comes first.
+
+> "Git reads like a foreign language. One wrong move and your work is gone, so most people just never touch it. This page was built for those people."
+
+Point at the story card: what the other tools say, struck through, with the stork peeking over it.
+
+> "Nobody should need a dictionary to save their work."
+
+Scroll to "Meet the team" (the three stork helpers with their mascots: the fixer mends broken files, the builder makes new files, the polisher makes files shine).
+
+> "These are the characters. Three helpers, each carrying its own basket of files."
+
+Scroll to "The fear goes away like this": save a version any time, go back to any version, send in the helpers and keep the winner.
+
+> "That is the resolution. And only now, after the story, comes the action."
+
+Click "Start a project" to walk through the front door into the workspace.
 
 > "That landing page is the front door. Everything behind it is the product."
 

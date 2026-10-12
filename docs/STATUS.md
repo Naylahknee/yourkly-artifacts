@@ -1,11 +1,11 @@
 # Status
 
-**Last updated:** 2026-10-12 (landing page shipped)
+**Last updated:** 2026-10-12 (landing page rebuilt as movie arc)
 
 ## What is working
 
 - Worker deployed and live at https://yourkly-artifacts.madincrease.workers.dev
-- **Landing page (new front door at /):** hero with stork + wordmark lockup and plain-language description, "Meet the team" with the three 3D agent mascots, "How it works" in 3 steps, black "Start a project" CTA leading to /app. Same aesthetic as the workspace: white background, purple wordmark, gray tagline, black rounded buttons, light bordered cards.
+- **Landing page (front door at /, rebuilt 2026-10-12):** an ADJUSTMENT of the original Yourkly landing bones (header with stork + wordmark and quiet "Sign in" top right, two-column hero, story card with stork peeking over it, trust line, numbered steps, footer), restructured as NaLonni's movie arc: THE FRICTION ("Version control is scary", struck-through jargon card), trust line (saved on Cloudflare, no GitHub needed), THE CHARACTERS ("Meet the team" with the three 3D mascots), THE RESOLUTION ("The fear goes away like this", 3 steps), and THE ACTION last ("Ready when you are" with the "Start a project" CTA to /app). No GitHub connect elements. "Sign in" currently leads to /app (no auth built yet; real sign-in pending NaLonni's signup decision in docs/FLOW.md step 2).
 - **Workspace moved to /app:** the full interactive product (dashboard, editor, save points, history, restore, agents) lives behind the CTA. All existing functionality unchanged.
 - **Full product, not just a demo:**
   - Project dashboard: lists all projects with name, last-saved label and time, save-point count. Empty state shows the 4-step onboarding tour.

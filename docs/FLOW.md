@@ -5,15 +5,26 @@ This is the master flow. Every screen we build must serve one of these steps.
 
 ## 1. Arrive — the landing page (`/`)
 
-A first-time visitor (or contest judge) lands here.
-- Stork + wordmark, headline, one plain paragraph: what Yourkly Artifacts is.
-  (Version control for people who never want to hear the word git, rebuilt on
-  Cloudflare, now with a team of AI helpers.)
-- Meet the team: the fixer, the builder, the polisher, each with its mascot
-  and one line on what it does.
-- How it works in 3 steps.
-- One button: "Start a project." That is the whole call to action.
-- Status: IN BUILD.
+A first-time visitor (or contest judge) lands here. The page tells the story
+like a movie arc. The call to action comes LAST, after the story.
+
+- Header: stork + wordmark on the left, quiet "Sign in" on the right.
+  (Same bones as the original Yourkly landing page.)
+- THE FRICTION: "Version control is scary." Git reads like a foreign
+  language, one wrong move and work is gone, so most people never touch it.
+  A story card shows what the other tools say (struck through), with the
+  stork peeking over it. No action button here.
+- Trust line: projects are saved on Cloudflare, no GitHub needed,
+  everything in plain words.
+- THE CHARACTERS: "Meet the team." The fixer, the builder, the polisher,
+  each with its mascot and one line on what it does.
+- THE RESOLUTION: "The fear goes away like this." Three steps: save a
+  version any time, go back to any version, send in the helpers and keep
+  the winner.
+- THE ACTION (last): "Ready when you are." One button: "Start a project."
+  That is the whole call to action.
+- Status: BUILT (rebuilt 2026-10-12 as an adjustment of the original
+  landing, not a redesign).
 
 ## 2. Sign up — DECISION NEEDED
 
