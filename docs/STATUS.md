@@ -1,10 +1,12 @@
 # Status
 
-**Last updated:** 2026-10-12 (mascots shipped)
+**Last updated:** 2026-10-12 (landing page shipped)
 
 ## What is working
 
 - Worker deployed and live at https://yourkly-artifacts.madincrease.workers.dev
+- **Landing page (new front door at /):** hero with stork + wordmark lockup and plain-language description, "Meet the team" with the three 3D agent mascots, "How it works" in 3 steps, black "Start a project" CTA leading to /app. Same aesthetic as the workspace: white background, purple wordmark, gray tagline, black rounded buttons, light bordered cards.
+- **Workspace moved to /app:** the full interactive product (dashboard, editor, save points, history, restore, agents) lives behind the CTA. All existing functionality unchanged.
 - **Full product, not just a demo:**
   - Project dashboard: lists all projects with name, last-saved label and time, save-point count. Empty state shows the 4-step onboarding tour.
   - Project view: file list, text editor, save-as-new-version with a "what changed" label, new file, delete file.
