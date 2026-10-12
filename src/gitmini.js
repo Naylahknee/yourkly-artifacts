@@ -159,7 +159,9 @@ async function buildTree(files) {
 // Push newSha to ref, replacing oldSha. objects = all new git objects needed.
 export async function gitPush({ remote, token, ref, oldSha, newSha, objects }) {
   const pack = await makePack(objects);
-  const refLine = `${oldSha} ${newSha} ${ref}\0report-status`;
+  // Git protocol needs the full ref name (refs/heads/main), not the bare branch name.
+  const fullRef = ref.startsWith('refs/') ? ref : `refs/heads/${ref}`;
+  const refLine = `${oldSha} ${newSha} ${fullRef}\0report-status`;
   const bodyParts = [pktLine(refLine), te.encode('0000'), pack];
   const bodyLen = bodyParts.reduce((n, p) => n + p.length, 0);
   const body = new Uint8Array(bodyLen);

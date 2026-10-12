@@ -1,48 +1,60 @@
 # Demo video script (5-10 minutes)
 
-Record your screen with voiceover. Plain language throughout. Total: about 7 minutes.
+Record your screen with voiceover. Plain language throughout. Total: about 8 minutes. This script shows the full product, not just the tour.
 
 ## Shot 1 — The idea (0:00-1:00)
 
-Open on the homepage. Say something like:
+Open on the homepage. Point out the stork and wordmark lockup in the header. Say something like:
 
 > "GitHub was built for humans who write code. But the next generation of software is being written by AI agents, hundreds of them, all at once. So what does version control look like when the builders aren't people? This is my answer: Yourkly on Artifacts. Version control for people, and agents, who never want to hear the word git."
 
-Scroll the page briefly so they see the four steps.
+## Shot 2 — The dashboard (1:00-2:00)
 
-## Shot 2 — Start a project (1:00-2:00)
+> "This is the real product. Every project lives here, with plain-language status: the name, when it was last saved, and how many save points it has. No branches, no hashes, no jargon."
 
-> "Step one: start a new project. I just name it."
+If the dashboard is empty, the 4-step onboarding tour appears instead. Walk through it quickly:
 
-Type a project name, click "Start the project."
+> "First run shows you around: start a project, send in three helpers, compare their work, keep the winner. That tour is the onboarding. What I am about to show you is the product it onboards you into."
 
-> "Behind the scenes, that created a versioned home for the project on Cloudflare Artifacts and saved the first version. I didn't touch a terminal."
+## Shot 3 — Open a project and edit (2:00-3:30)
 
-## Shot 3 — Send in the agents (2:00-4:00)
+Open a project (or start one from the dashboard).
 
-> "Step two: I send in three agents. Each one gets its own private copy of the project and a written task. They all work at the same time."
+> "Inside a project, I see my files. I can open one and just write. When I am done, I save it as a new version and say what changed, in my own words."
 
-Click "Send in the agents." Show the three agent cards appearing.
+Edit a file, type a label like "rewrote the intro," click "Save as a new version."
 
-> "Agent one fixes a typo. Agent two adds a features section. Agent three improves the styling. And here's the part I care about: each copy carries its task description right alongside the code. Six months from now, you don't just see what changed, you see why."
+> "Behind the scenes, that is a versioned snapshot on Cloudflare Artifacts. I never touched a terminal."
 
-## Shot 4 — Compare (4:00-5:30)
+## Shot 4 — Save points (3:30-4:30)
 
-> "Step three: compare their work. No diff syntax, no branch names. Just plain words."
+Scroll to the save points section.
+
+> "Every version I save becomes a save point with my label on it. And if I ever mess up, I can go back to any earlier version. Going back saves my current work first as its own version, so nothing is ever lost."
+
+Optionally click "Go back to this version" on an older save point to show it working.
+
+## Shot 5 — Send in the helpers (4:30-6:00)
+
+> "Now the part I built this for. From any project, I can send in three AI helpers. Each one gets its own private copy of the project and a written task. They all work at the same time without stepping on each other."
+
+Click "Send in the helpers." Show the three agent cards with their stork mascots appearing.
+
+> "The fixer has a wrench. The builder wears the hard hat. The polisher brings the sparkles. Each copy carries its task description right alongside the code. Six months from now, you don't just see what changed, you see why."
+
+## Shot 6 — Compare and keep (6:00-7:30)
+
+> "Here is what each helper changed, in plain words. No diff syntax. I can read this like a menu."
 
 Show the compare cards.
 
-> "The fixer fixed the typo. The builder added the features. The polisher warmed up the styling. I can read this like a menu."
+> "I keep the one I like."
 
-## Shot 5 — Keep this one (5:30-6:30)
+Click "Keep this one" on one of them.
 
-> "Step four: I keep the one I like."
+> "Their work is now the project's current version. The other two copies are still saved if I ever want to look back. Nothing is lost."
 
-Click "Keep this one" on the builder.
-
-> "Their work is now the project's main version. The other two copies are still saved if I ever want to look back. Nothing is lost."
-
-## Shot 6 — The bigger point (6:30-7:00)
+## Shot 7 — The bigger point (7:30-8:00)
 
 > "The contest asked what the next Git platform looks like. I think it looks like this: the storage is Git, the agents speak Git, but the humans never have to. The interface is plain language all the way down, and the agents' context, what they were asked and why, lives right next to the code. That's Yourkly on Artifacts."
 
@@ -50,6 +62,6 @@ End screen: repo URL + "MIT licensed, try it yourself."
 
 ## Tips
 
-- Do one full run before recording so the timing feels natural.
-- If a step is slow (pushes take a few seconds), narrate over it: "the agents are saving their work now."
+- Do one full run before recording so the timing feels natural. Delete the practice project from the dashboard afterward so the recording starts clean.
+- If a step is slow (pushes take a few seconds), narrate over it: "the helpers are saving their work now."
 - Keep the tab at a readable zoom level.

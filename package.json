@@ -7,7 +7,7 @@
  "license": "MIT",
  "name": "yourkly-artifacts",
  "scripts": {
-  "build": "esbuild src/worker.js --bundle --format=esm --platform=browser --outfile=dist/worker.js --external:cloudflare:* --external:node:*",
+  "build": "node scripts/build-assets.js && esbuild src/worker.js --bundle --format=esm --platform=browser --outfile=dist/worker.js --external:cloudflare:* --external:node:*",
   "deploy": "node scripts/deploy.js",
   "test": "node --test tests/smoke.test.js"
  },
