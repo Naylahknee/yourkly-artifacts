@@ -34,7 +34,7 @@
 - `/api/health` returns ok.
 - `npm test`: 32/32 passing (health, no-jargon homepage, workspace behind /app with full nav, landing mirrors original, no tech/GitHub mentions on landing, every screen group served, continue-in empty state, empty-basket mascot, agent mascots, upgraded animations, no GitHub/Artifacts/Cloudflare/Workers in user text except the migration flow, full project lifecycle, agents flow, legacy onboarding flow, sidebar Help submenu, 6 help-topic reference checks, import screen + 4 import API tests).
 - Per-agent stork mascots in TWO sets, NaLonni approved: 3D set (embedded in the UI) and line-art set (alternates in public/). Each stork carries a woven basket of files from its beak. Plus the empty-basket stork for the zero-projects state.
-- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT), remote main at b5679ce5.
+- Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT), remote main at 7ec7b2bd.
 
 ## What is still incomplete
 
