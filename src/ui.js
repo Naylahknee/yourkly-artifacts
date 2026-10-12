@@ -67,65 +67,50 @@ const PAGE_STYLE = `
   .winner { border: 2px solid #276749; }
   .back { color: var(--muted); cursor: pointer; font-size: 15px; margin-bottom: 16px; display: inline-block; }
   .back:hover { color: var(--ink); }
-  /* Landing page */
-  .hero { text-align: center; padding: 56px 0 40px; }
-  .hero-lockup { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 20px; }
-  .hero-lockup .brand-stork { width: 84px; height: 84px; object-fit: contain; }
-  .hero-lockup .brand-wordmark { height: 56px; width: auto; }
-  .lede { color: var(--muted); font-size: 18px; max-width: 660px; margin: 0 auto 28px; }
-  .cta { display: inline-block; background: var(--ink); color: #fff; border: none; padding: 14px 34px; font-size: 17px; border-radius: 8px; cursor: pointer; text-decoration: none; }
-  .cta:hover { opacity: 0.85; }
-  .team { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 8px; }
-  .teammate { text-align: center; }
-  .teammate img.mascot { width: 128px; height: 128px; object-fit: contain; display: block; margin: 0 auto 12px; }
-  .teammate h3 { margin: 0 0 8px; font-size: 18px; }
-  .teammate p { margin: 0; }
-  .section-sub { color: var(--muted); margin: -6px 0 18px; }
-  .cta-row { text-align: center; margin: 36px 0 8px; }
-  /* Landing page: adjustment of the original Yourkly landing bones.
-     Movie arc order: friction, characters, resolution, action (last). */
+  /* Landing page: mirrors the original Yourkly landing. */
   body.landing-body { background: #fff; }
-  .landing-shell { max-width: 1240px; margin: 0 auto; padding: 36px 28px 0; }
+  .landing-shell { width: min(1240px, 100%); margin: 0 auto; padding: 36px 28px 0; }
   .landing-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 74px; }
   .landing-header .brand-lockup { cursor: default; }
   .landing-header .brand-stork { width: 34px; height: 34px; }
   .landing-header .brand-wordmark { height: 30px; }
   .landing-signin { color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600; }
   .landing-signin:hover { color: var(--purple); }
-  .landing-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .93fr); align-items: center; gap: clamp(42px, 7vw, 92px); padding-bottom: 110px; }
+  .landing-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .93fr); align-items: center; gap: clamp(42px, 7vw, 92px); padding-bottom: 120px; }
   .landing-hero-copy h1 { margin: 0; max-width: 11ch; font-size: clamp(44px, 5.45vw, 68px); font-weight: 800; line-height: 1.04; letter-spacing: -.045em; }
-  .landing-hero-copy > p { margin: 28px 0 0; max-width: 34ch; color: #555; font-size: clamp(18px, 1.8vw, 21px); line-height: 1.5; }
-  .scroll-hint { display: inline-block; margin-top: 26px; color: var(--muted); font-size: 15px; font-weight: 600; text-decoration: none; }
-  .scroll-hint:hover { color: var(--ink); }
+  .landing-hero-copy > p { margin: 28px 0 0; max-width: 31ch; color: #555; font-size: clamp(18px, 1.8vw, 21px); line-height: 1.5; }
+  .landing-cta-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 32px; }
+  .landing-cta { display: inline-block; border: 0; border-radius: 14px; padding: 19px 30px; background: var(--purple); color: #fff; box-shadow: 0 10px 24px rgba(98, 70, 234, .24); font-size: 17px; font-weight: 700; line-height: 1; text-decoration: none; cursor: pointer; }
+  .landing-cta:hover { background: #4a3fb8; }
+  .landing-cta-stack > span { color: var(--muted); font-size: 14px; line-height: 1.4; }
   .landing-product-wrap { position: relative; min-width: 0; }
   .landing-stork-peek { position: absolute; z-index: 0; width: min(150px, 27%); right: -28px; top: -80px; pointer-events: none; }
-  .story-card { position: relative; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 26px; box-shadow: 0 24px 60px rgba(23, 23, 36, .10); }
-  .story-card .card-label { display: block; margin-bottom: 18px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-  .scary-line { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; color: #999; background: #fafafa; border: 1px solid #ededf3; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
-  .scary-line s { text-decoration-color: #c53030; text-decoration-thickness: 2px; }
-  .story-caption { margin: 18px 0 0; color: #555; font-size: 15px; }
-  .landing-trust { padding: 34px 20px; border-top: 1px solid #ededf3; border-bottom: 1px solid #ededf3; color: #555; font-weight: 600; font-size: 17px; line-height: 1.5; text-align: center; }
-  .landing-characters { padding: 110px 0 20px; }
-  .landing-characters h2, .landing-steps h2 { margin: 0 0 12px; font-size: clamp(32px, 3.55vw, 44px); font-weight: 800; line-height: 1.1; letter-spacing: -.035em; }
-  .landing-steps { padding: 90px 0 20px; }
-  .landing-steps h2 { margin-bottom: 56px; max-width: 20ch; }
-  .landing-step-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
-  .landing-step-grid article { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px; }
-  .landing-step-grid .num { display: block; margin-bottom: 14px; color: var(--purple); font-size: 14px; font-weight: 800; letter-spacing: .08em; }
-  .landing-step-grid h3 { margin: 0 0 10px; font-size: 24px; font-weight: 700; letter-spacing: -.025em; }
-  .landing-step-grid p { margin: 0; color: #555; font-size: 16px; }
-  .landing-action { text-align: center; padding: 100px 0 110px; }
-  .landing-action h2 { margin: 0 0 28px; font-size: clamp(32px, 3.55vw, 44px); font-weight: 800; letter-spacing: -.035em; }
-  .microcopy { margin: 20px 0 0; color: var(--muted); font-size: 14px; }
+  .landing-product-preview { position: relative; z-index: 1; min-height: 340px; padding: 26px; background: #fff; border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 24px 60px rgba(23, 23, 36, .10); }
+  .landing-product-head { display: flex; align-items: center; gap: 12px; }
+  .landing-product-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: var(--purple); color: #fff; font-size: 16px; font-weight: 800; line-height: 1; }
+  .landing-product-head > span:last-child { display: grid; gap: 2px; min-width: 0; }
+  .landing-product-head strong { font-size: 16px; font-weight: 700; line-height: 1.25; }
+  .landing-product-head small { color: var(--muted); font-size: 12px; line-height: 1.25; }
+  .landing-product-label { display: block; margin: 25px 0 14px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .landing-task-card { display: grid; gap: 18px; padding: 20px; border: 1px solid #ededf3; border-radius: 16px; background: #fcfcfe; }
+  .landing-task-card strong { font-size: 19px; font-weight: 700; line-height: 1.4; letter-spacing: -.02em; }
+  .landing-preview-action { align-self: flex-start; padding: 15px 20px; border-radius: 12px; background: var(--purple); color: #fff; box-shadow: 0 8px 20px rgba(98, 70, 234, .22); font-size: 15px; font-weight: 700; line-height: 1; }
+  .landing-preview-action i { font-style: normal; }
   .landing-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 32px 0 40px; border-top: 1px solid #ededf3; color: var(--muted); font-size: 14px; }
+  .landing-footer a { color: #555; text-decoration: none; }
+  .landing-footer a:hover { color: var(--purple); }
   @media (max-width: 820px) {
     .landing-shell { padding: 24px 20px 0; }
     .landing-header { padding-bottom: 52px; }
-    .landing-hero { grid-template-columns: minmax(0, 1fr); gap: 72px; padding-bottom: 76px; }
-    .landing-hero-copy h1 { font-size: clamp(40px, 12vw, 54px); }
-    .landing-step-grid { grid-template-columns: minmax(0, 1fr); }
-    .landing-characters { padding-top: 76px; }
-    .landing-steps { padding-top: 70px; }
+    .landing-hero { grid-template-columns: minmax(0, 1fr); gap: 52px; padding-bottom: 76px; }
+    .landing-hero-copy h1 { max-width: 12ch; font-size: clamp(40px, 12vw, 54px); }
+    .landing-hero-copy > p { margin-top: 22px; font-size: 18px; }
+    .landing-cta-stack { align-items: stretch; }
+    .landing-cta { width: 100%; text-align: center; }
+    .landing-cta-stack > span { text-align: center; }
+    .landing-stork-peek { width: 102px; right: -7px; top: -56px; }
+    .landing-product-preview { min-height: 320px; padding: 21px; border-radius: 20px; }
+    .landing-task-card strong { font-size: 18px; }
   }
 `;
 
@@ -135,7 +120,7 @@ export function renderLanding() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yourkly on Artifacts</title>
+<title>Yourkly</title>
 <style>${PAGE_STYLE}</style>
 </head>
 <body class="landing-body">
@@ -151,67 +136,45 @@ export function renderLanding() {
   <main>
     <section class="landing-hero">
       <div class="landing-hero-copy">
-        <h1>Version control is scary.</h1>
-        <p>Git reads like a foreign language. One wrong move and your work is gone, so most people just never touch it. Yourkly Artifacts was built for those people.</p>
-        <a class="scroll-hint" href="#resolution">See how the fear goes away &darr;</a>
+        <h1>Your projects, made clear</h1>
+        <p>Know what changed, what it means, and exactly what to do next.</p>
+        <div class="landing-cta-stack">
+          <a class="landing-cta" href="/app">Continue with Yourkly</a>
+          <span id="welcomeBack" class="hidden"></span>
+        </div>
       </div>
       <div class="landing-product-wrap">
         <img class="landing-stork-peek" src="${IMG_YOURKLY_STORK}" alt="" aria-hidden="true">
-        <div class="story-card">
-          <span class="card-label">What the other tools say</span>
-          <div class="scary-line"><s>detached HEAD state</s></div>
-          <div class="scary-line"><s>git rebase --onto main</s></div>
-          <div class="scary-line"><s>stash@{0}: WIP on main</s></div>
-          <p class="story-caption">Nobody should need a dictionary to save their work.</p>
+        <div class="landing-product-preview" aria-label="Yourkly project preview">
+          <div class="landing-product-head">
+            <span class="landing-product-icon">y</span>
+            <span><strong>Yourkly</strong><small>Updated 2 hours ago</small></span>
+          </div>
+          <span class="landing-product-label">What to do next</span>
+          <div class="landing-task-card">
+            <strong>Review the landing-page update, then continue in Lovable.</strong>
+            <span class="landing-preview-action">Continue in Lovable <i aria-hidden="true">&rarr;</i></span>
+          </div>
         </div>
       </div>
-    </section>
-
-    <section class="landing-trust">Your projects are saved on Cloudflare. No GitHub needed. Everything in plain words.</section>
-
-    <section class="landing-characters">
-      <h2>Meet the team</h2>
-      <p class="section-sub">Three helpers who work on your project at the same time. Each one carries its own basket of files.</p>
-      <div class="team">
-        <div class="card teammate">
-          <img class="mascot" src="${IMG_STORK_FIXER}" alt="">
-          <h3>The Fixer</h3>
-          <p>Mends broken files, like typos and small mistakes.</p>
-        </div>
-        <div class="card teammate">
-          <img class="mascot" src="${IMG_STORK_BUILDER}" alt="">
-          <h3>The Builder</h3>
-          <p>Writes brand new files, like a summary of your project.</p>
-        </div>
-        <div class="card teammate">
-          <img class="mascot" src="${IMG_STORK_POLISHER}" alt="">
-          <h3>The Polisher</h3>
-          <p>Tidies up your files so everything reads clean.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-steps" id="resolution">
-      <h2>The fear goes away like this.</h2>
-      <div class="landing-step-grid">
-        <article><span class="num">01</span><h3>Save a version any time</h3><p>Give it a plain label, like "rewrote the intro". From then on, that version is safe.</p></article>
-        <article><span class="num">02</span><h3>Go back to any version</h3><p>Changed your mind? Go back. Your current work is saved first as its own version, so nothing is ever lost.</p></article>
-        <article><span class="num">03</span><h3>Send in the helpers</h3><p>Each helper takes its own copy and works at the same time. You compare their work in plain words and keep the winner.</p></article>
-      </div>
-    </section>
-
-    <section class="landing-action">
-      <h2>Ready when you are.</h2>
-      <a class="cta" href="/app">Start a project</a>
-      <p class="microcopy">No account needed to start. No GitHub needed.</p>
     </section>
   </main>
 
   <footer class="landing-footer">
     <span>&copy; 2026 Yourkly</span>
-    <span>MIT licensed</span>
+    <a href="https://github.com/Naylahknee/yourkly-artifacts/issues/new" target="_blank" rel="noopener noreferrer">Support</a>
   </footer>
 </div>
+<script>
+fetch('/api/projects').then(function(r){return r.json();}).then(function(j){
+  var n=(j.projects||[]).length;
+  if(n>0){
+    var el=document.getElementById('welcomeBack');
+    el.textContent='Welcome back! You have '+n+' project'+(n===1?'':'s')+'.';
+    el.classList.remove('hidden');
+  }
+}).catch(function(){});
+</script>
 </body>
 </html>`;
 }
@@ -223,7 +186,7 @@ export function renderApp() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yourkly on Artifacts</title>
+<title>Yourkly</title>
 <style>${PAGE_STYLE}</style>
 </head>
 <body>
@@ -236,7 +199,7 @@ export function renderApp() {
     <nav><a id="navProjects">Your projects</a></nav>
   </div>
   <div id="app"></div>
-  <footer>Yourkly on Cloudflare Artifacts. MIT licensed. Built for the agentic era.</footer>
+  <footer>&copy; 2026 Yourkly</footer>
 </div>
 
 <script>

@@ -44,12 +44,25 @@ test('workspace lives behind /app', async () => {
   assert.ok(html.includes('Your projects'), 'workspace nav present');
 });
 
-test('landing page links into the workspace', async () => {
+test('landing page mirrors the original Yourkly landing', async () => {
   const r = await fetch(BASE + '/');
   const html = await r.text();
-  assert.ok(html.includes('href="/app"'), 'CTA leads to /app');
-  assert.ok(html.includes('Meet the team'), 'team section present');
-  assert.ok(html.includes('The Fixer') && html.includes('The Builder') && html.includes('The Polisher'), 'all three helpers named');
+  assert.ok(html.includes('Your projects, made clear'), 'original headline present');
+  assert.ok(html.includes('Continue with Yourkly'), 'primary button present');
+  assert.ok(html.includes('href="/app"'), 'Continue leads to /app');
+  assert.ok(html.includes('What to do next'), 'story card present');
+  assert.ok(html.includes('Sign in'), 'quiet sign-in present');
+});
+
+test('landing page names no tech and no GitHub rows', async () => {
+  const r = await fetch(BASE + '/');
+  const html = await r.text();
+  const textOnly = html.replace(/src="data:[^"]*"/g, '').replace(/href="[^"]*"/g, '');
+  const lower = textOnly.toLowerCase();
+  for (const word of ['artifact', 'cloudflare', 'worker', 'meet the team', 'start a project']) {
+    assert.ok(!lower.includes(word), `landing page should not say "${word}"`);
+  }
+  assert.ok(!html.includes('Connect GitHub'), 'no Connect GitHub row');
 });
 
 test('full product cycle: create, edit, save points, restore, delete', async () => {

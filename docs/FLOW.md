@@ -5,26 +5,26 @@ This is the master flow. Every screen we build must serve one of these steps.
 
 ## 1. Arrive — the landing page (`/`)
 
-A first-time visitor (or contest judge) lands here. The page tells the story
-like a movie arc. The call to action comes LAST, after the story.
+A first-time visitor (or contest judge) lands here. The page mirrors the
+original Yourkly landing page. Nothing about it should feel different
+from Yourkly.
 
 - Header: stork + wordmark on the left, quiet "Sign in" on the right.
-  (Same bones as the original Yourkly landing page.)
-- THE FRICTION: "Version control is scary." Git reads like a foreign
-  language, one wrong move and work is gone, so most people never touch it.
-  A story card shows what the other tools say (struck through), with the
-  stork peeking over it. No action button here.
-- Trust line: projects are saved on Cloudflare, no GitHub needed,
-  everything in plain words.
-- THE CHARACTERS: "Meet the team." The fixer, the builder, the polisher,
-  each with its mascot and one line on what it does.
-- THE RESOLUTION: "The fear goes away like this." Three steps: save a
-  version any time, go back to any version, send in the helpers and keep
-  the winner.
-- THE ACTION (last): "Ready when you are." One button: "Start a project."
-  That is the whole call to action.
-- Status: BUILT (rebuilt 2026-10-12 as an adjustment of the original
-  landing, not a redesign).
+- Headline: "Your projects, made clear."
+- Subtext: "Know what changed, what it means, and exactly what to do
+  next."
+- One button: "Continue with Yourkly." That is the whole call to action.
+  It leads into the workspace (/app).
+- If the visitor already has projects, a quiet line says so:
+  "Welcome back! You have N projects."
+- Story card on the right with the stork peeking over it: "What to do
+  next" with a sample task card, exactly like the original.
+- Footer: "© 2026 Yourkly" and Support.
+- The GitHub-specific rows from the original are dropped (this version
+  does not use GitHub). Everything else is identical.
+- No mention of Artifacts, Cloudflare, or Workers anywhere the user can
+  see. The tech story lives in the repo and the demo video, not the page.
+- Status: BUILT (reverted 2026-10-12 to mirror the original).
 
 ## 2. Sign up — DECISION NEEDED
 

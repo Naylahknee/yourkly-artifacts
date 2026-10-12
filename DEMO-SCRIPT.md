@@ -2,31 +2,23 @@
 
 Record your screen with voiceover. Plain language throughout. Total: about 8 minutes. This script shows the full product, not just the tour.
 
-## Shot 1 — The front door (0:00-1:15)
+## Shot 1 — The front door (0:00-1:00)
 
-Open on the landing page. It tells the story like a movie arc, so follow it in order. Say something like:
+Open on the landing page. It is the same landing page as Yourkly, because this is Yourkly. Say something like:
 
-> "GitHub was built for humans who write code. But the next generation of software is being written by AI agents, hundreds of them, all at once. So what does version control look like when the builders aren't people? This is my answer: Yourkly on Artifacts."
+> "Yourkly is version control for people who never want to hear the word git. Your projects, made clear: know what changed, what it means, and exactly what to do next."
 
-Point at the headline: "Version control is scary." The friction comes first.
+Point at the headline and the "Continue with Yourkly" button.
 
-> "Git reads like a foreign language. One wrong move and your work is gone, so most people just never touch it. This page was built for those people."
+> "One button. That is the whole front door."
 
-Point at the story card: what the other tools say, struck through, with the stork peeking over it.
+Point at the story card on the right, with the stork peeking over it.
 
-> "Nobody should need a dictionary to save their work."
+> "And this is the product talking to you in plain words: what to do next."
 
-Scroll to "Meet the team" (the three stork helpers with their mascots: the fixer mends broken files, the builder makes new files, the polisher makes files shine).
+Click "Continue with Yourkly" to walk through the front door into the workspace.
 
-> "These are the characters. Three helpers, each carrying its own basket of files."
-
-Scroll to "The fear goes away like this": save a version any time, go back to any version, send in the helpers and keep the winner.
-
-> "That is the resolution. And only now, after the story, comes the action."
-
-Click "Start a project" to walk through the front door into the workspace.
-
-> "That landing page is the front door. Everything behind it is the product."
+> "Everything behind this page is the product. And the product has a team living inside it. Let me show you."
 
 ## Shot 2 — The dashboard (1:00-2:00)
 
