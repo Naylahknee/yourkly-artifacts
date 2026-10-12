@@ -588,3 +588,14 @@ test('returning user skips profile creation', async () => {
   assert.equal(v.json.needsProfile, false, 'returning user skips profile setup');
   await authed('/api/auth/sign-out', 'POST', {}, v.cookie);
 });
+
+test('landing shows the three steps section', async () => {
+  const r = await fetch(BASE + '/');
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.ok(html.includes('Three steps, then you'), 'steps heading present');
+  for (const s of ['Start your project', 'Yourkly explains it in plain words', 'Send in the helpers']) {
+    assert.ok(html.includes(s), 'step present: ' + s);
+  }
+  assert.ok(html.includes('landing-steps-grid'), 'steps grid present');
+});

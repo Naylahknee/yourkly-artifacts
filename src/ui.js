@@ -592,6 +592,13 @@ const LANDING_STYLE = `
   .landing-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 32px 0 40px; border-top: 1px solid #ededf3; color: var(--muted); font-size: 14px; }
   .landing-footer a { color: #555; text-decoration: none; }
   .landing-footer a:hover { color: var(--purple); }
+  .landing-steps { padding: 0 0 110px; }
+  .landing-steps h2 { margin: 0 0 40px; font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -.03em; }
+  .landing-steps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .landing-step { padding: 28px; border: 1px solid #ededf3; border-radius: 20px; background: #fcfcfe; }
+  .landing-step-num { display: block; margin-bottom: 14px; color: var(--purple); font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+  .landing-step h3 { margin: 0 0 10px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .landing-step p { margin: 0; color: #555; font-size: 15.5px; line-height: 1.55; }
   @media (max-width: 820px) {
     .landing-shell { padding: 24px 20px 0; }
     .landing-header { padding-bottom: 52px; }
@@ -604,6 +611,8 @@ const LANDING_STYLE = `
     .landing-stork-peek { width: 102px; right: -7px; top: -30px; }
     .landing-product-preview { min-height: 320px; padding: 21px; border-radius: 20px; }
     .landing-task-card strong { font-size: 18px; }
+    .landing-steps { padding-bottom: 70px; }
+    .landing-steps-grid { grid-template-columns: minmax(0, 1fr); }
   }
 `;
 
@@ -648,6 +657,26 @@ export function renderLanding() {
             <strong>Review the landing-page update, then continue in Yourkly.</strong>
             <span class="landing-preview-action">Continue in Yourkly <i aria-hidden="true">&rarr;</i></span>
           </div>
+        </div>
+      </div>
+    </section>
+    <section class="landing-steps">
+      <h2>Three steps, then you're working.</h2>
+      <div class="landing-steps-grid">
+        <div class="landing-step">
+          <span class="landing-step-num">01</span>
+          <h3>Start your project</h3>
+          <p>Bring one over from GitHub or start fresh. Yourkly keeps every version safe.</p>
+        </div>
+        <div class="landing-step">
+          <span class="landing-step-num">02</span>
+          <h3>Yourkly explains it in plain words</h3>
+          <p>Where you left off, what changed, and what to do next.</p>
+        </div>
+        <div class="landing-step">
+          <span class="landing-step-num">03</span>
+          <h3>Send in the helpers</h3>
+          <p>Three helpers work on copies at the same time. You keep the version you like best.</p>
         </div>
       </div>
     </section>

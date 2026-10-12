@@ -4,7 +4,7 @@ Version control for people (and agents) who never want to hear the word git.
 
 This is a contest entry for Cloudflare's "build the next Git platform" competition. It takes Yourkly's plain-language approach to version control and rebuilds it on Cloudflare Workers + Artifacts, designed for a world where AI agents do the coding.
 
-**Live demo:** https://yourkly-artifacts.madincrease.workers.dev
+**Live demo:** https://yourk.app (custom domain, connected 2026-10-12; the old workers.dev address below still works too)
 
 ## What it does
 
