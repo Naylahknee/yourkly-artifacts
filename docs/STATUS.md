@@ -1,11 +1,11 @@
 # Status
 
-**Last updated:** 2026-10-12 (help topics reference-checked against the original's screenshots)
+**Last updated:** 2026-10-12 (GitHub migration built: Import brings whole public projects over, no login)
 
 ## What is working
 
 - Worker deployed and live at https://yourkly-artifacts.madincrease.workers.dev
-- **Landing page (front door at /):** mirrors the original Yourkly landing page. (Unchanged by this task.)
+- **Landing page (front door at /):** mirrors the original Yourkly landing page. Leftover "Lovable" mention in the story card fixed 2026-10-12.
 - **Workspace at /app rebuilt 2026-10-12 to mirror the full original Yourkly page map** (20 screenshots). Same layout, same copy (GitHub mentions swapped for neutral truthful language), same structure. GitHub removed entirely; no dead buttons.
   - App shell: 248px sidebar (stork + wordmark, "Your work, made clear." tagline, nav: Home / My Projects / Recent Activity / Account / Help, footer "Your work, saved."), project nav appears inside a project (Project Home, Updates, Things to Do, Make an Update, Project Files, What Changed, Save Points, Separate Versions, Continue in..., Who Can See It, Settings). Mobile: hamburger opens a slide-over drawer with the full nav; all screens responsive at desktop and mobile widths.
   - Dashboard: "Good morning." greeting, "New project" button, "Continue where you left off" hero card, "Recent projects" cards, "Recent activity" feed. Empty state keeps the 4-step onboarding tour.
@@ -14,6 +14,7 @@
   - Account: honest no-account page ("You are using Yourkly without an account.", "Your projects are saved and kept safe."). Includes a "Preview the pill" link to the profile preview.
   - Profile preview (new): floating profile pill mirroring the original widget. Dark rounded pill with the stork avatar circle, "Hello, I'm / Your profile", and a + button that expands to the profile state (back button collapses). Same transitions, reduced-motion fallback, mobile responsive. Reached from the Account page.
   - Add a project: "Make your project" form (name + optional "What are you building?"); the description is saved as "About this project.md". The GitHub-import wizard options are gone (they cannot work here).
+  - Bring a project over (new): dashboard "Import" button opens an import screen. Paste a GitHub link (full URL or owner/repo shorthand); no GitHub account, no login, no token. The Worker fetches the public tarball, extracts every file (up to 2000 files / 50MB, very large single files are left behind with a note), and makes it a native Yourkly project with the first save point labeled "Brought over from GitHub." You land on Project Home. Clear errors for bad links, private/missing repos ("Only public repos can be brought over right now."), and oversized projects. Name collisions get a numbered suffix; nothing is ever overwritten. The "I want to bring a project from GitHub" help card now describes the real flow. GitHub is named only in this flow and its help card.
   - Project Home: status row ("Main version · vN | Last Save Point X ago | Everything saved"), "Project health" card with a working "Check again", "Send in the helpers" promo with the mascot trio, "Recently saved" card, "Make an update" + "See everything that changed".
   - Updates: helper versions as update rows ("Ready to compare", next step "Compare and keep one"), "Saved" section below.
   - Things to Do: todo list kept in this browser (add, check off, delete). Honest note that it lives on this computer.
@@ -31,7 +32,7 @@
 - Everything stored in Artifacts repos. No GitHub, no localStorage except the Things-to-Do list.
 - No user-facing mention of Artifacts, Cloudflare, or Workers. No git jargon. No em-dashes.
 - `/api/health` returns ok.
-- `npm test`: 27/27 passing (health, no-jargon homepage, workspace behind /app with full nav, landing mirrors original, no tech/GitHub mentions on landing, every screen group served, continue-in empty state, empty-basket mascot, agent mascots, upgraded animations, no GitHub/Artifacts/Cloudflare/Workers in user text, full project lifecycle, agents flow, legacy onboarding flow, sidebar Help submenu, 6 help-topic reference checks).
+- `npm test`: 32/32 passing (health, no-jargon homepage, workspace behind /app with full nav, landing mirrors original, no tech/GitHub mentions on landing, every screen group served, continue-in empty state, empty-basket mascot, agent mascots, upgraded animations, no GitHub/Artifacts/Cloudflare/Workers in user text except the migration flow, full project lifecycle, agents flow, legacy onboarding flow, sidebar Help submenu, 6 help-topic reference checks, import screen + 4 import API tests).
 - Per-agent stork mascots in TWO sets, NaLonni approved: 3D set (embedded in the UI) and line-art set (alternates in public/). Each stork carries a woven basket of files from its beak. Plus the empty-basket stork for the zero-projects state.
 - Pushed to GitHub: Naylahknee/yourkly-artifacts (public, MIT), remote main at b5679ce5.
 

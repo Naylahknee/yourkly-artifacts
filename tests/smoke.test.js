@@ -115,11 +115,21 @@ test('app names no GitHub, no Artifacts, no Cloudflare, no Workers in user text'
     .replace(/href="[^"]*"/g, '')
     .replace(/https:\/\/github\.com\/[A-Za-z0-9/_?=&;.-]*/g, '');
   const lower = textOnly.toLowerCase();
-  // Intentional exception: the "bring a project from GitHub" help card names
-  // the source the user is migrating from. Strip that card's copy before the blanket check.
+  // Intentional exception: the migration flow names GitHub as the source the
+  // user is moving a project from. Strip that flow's copy before the blanket check.
   const withoutBring = lower
     .replace(/i want to bring a project from github/g, '')
-    .replace(/a repo link is a web address that points to a project stored on github\./g, '');
+    .replace(/move a whole project from a github link into yourkly\. no login needed\./g, '')
+    .replace(/copy the github link to the project\. it looks like github\.com\/someone\/their-project\./g, '')
+    .replace(/no github account needed, and only public projects can come over\./g, '')
+    .replace(/move a whole project from github into yourkly\. paste the link and yourkly brings every file over\./g, '')
+    .replace(/paste the github link to the project\. something like github\.com\/someone\/their-project works, or just someone\/their-project\./g, '')
+    .replace(/you do not need a github account, and yourkly never asks you to log in anywhere else\./g, '')
+    .replace(/that does not look like a github link\. try something like github\.com\/someone\/their-project\./g, '')
+    .replace(/paste a github link first\./g, '')
+    .replace(/brought over /g, '')
+    .replace(/ files from github\./g, '')
+    .replace(/>github link</g, '><');
   for (const word of ['github', 'artifact', 'cloudflare', 'worker']) {
     assert.ok(!withoutBring.includes(word), `app should not say "${word}" where the user can see`);
   }
@@ -405,4 +415,44 @@ test('help topics use no em-dashes', async () => {
   assert.ok(helpSrc.includes('function helpContact'), 'slice covers all help topics');
   // \u2014 in the served inline script is the em-dash escape; it must not appear in help copy.
   assert.ok(!helpSrc.includes('\\u2014'), 'no em-dash escapes in the help topics');
+});
+
+test('import screen and dashboard Import button are present', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('Bring a project over'), 'import screen title present');
+  assert.ok(html.includes('Bring it over'), 'import button present');
+  assert.ok(html.includes('data-go="import"'), 'dashboard Import button present');
+  assert.ok(html.includes('Public projects only.'), 'public-only note present');
+});
+
+test('import rejects a bad link', async () => {
+  const { status, json } = await api('/api/import', 'POST', { link: 'not a link at all' });
+  assert.equal(status, 400);
+  assert.ok(/github link/i.test(json.error), 'error names the GitHub link: ' + json.error);
+});
+
+test('import rejects shorthand and full URLs the same way', async () => {
+  for (const link of ['octocat', 'https://example.com/foo', 'github.com//']) {
+    const { status } = await api('/api/import', 'POST', { link });
+    assert.equal(status, 400, 'rejected: ' + link);
+  }
+});
+
+test('import of a missing repo explains the public-only rule', async () => {
+  const { status, json } = await api('/api/import', 'POST', { link: 'https://github.com/definitely-not-a-real-owner-xyz123/definitely-not-a-real-repo-xyz123' });
+  assert.equal(status, 404);
+  assert.ok(json.error.includes('Only public repos can be brought over right now.'), 'public-only error copy: ' + json.error);
+});
+
+test('import brings a whole public project over, then cleans up', async () => {
+  const { status, json } = await api('/api/import', 'POST', { link: 'octocat/Hello-World' });
+  assert.equal(status, 200, 'import ok: ' + JSON.stringify(json));
+  assert.ok(json.files > 0, 'files came over');
+  assert.equal(json.displayName, 'Hello-World');
+  const opened = await api('/api/projects/' + encodeURIComponent(json.name));
+  assert.equal(opened.status, 200);
+  assert.ok(opened.json.savePoints.some((s) => s.label === 'Brought over from GitHub'), 'first save point labeled');
+  const del = await api('/api/projects/' + encodeURIComponent(json.name), 'DELETE');
+  assert.equal(del.status, 200);
 });

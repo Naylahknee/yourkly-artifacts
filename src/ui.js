@@ -638,8 +638,8 @@ export function renderLanding() {
           </div>
           <span class="landing-product-label">What to do next</span>
           <div class="landing-task-card">
-            <strong>Review the landing-page update, then continue in Lovable.</strong>
-            <span class="landing-preview-action">Continue in Lovable <i aria-hidden="true">&rarr;</i></span>
+            <strong>Review the landing-page update, then continue in Yourkly.</strong>
+            <span class="landing-preview-action">Continue in Yourkly <i aria-hidden="true">&rarr;</i></span>
           </div>
         </div>
       </div>
@@ -812,7 +812,7 @@ function helpSubmenu() {
 function renderNav(activeView) {
   const helpOpen = activeView === 'help';
   const g = GLOBAL_NAV.map(function(n) {
-    const item = navItem(n[0], n[1], activeView === n[0] || (activeView === 'new' && n[0] === 'projects'));
+    const item = navItem(n[0], n[1], activeView === n[0] || (activeView === 'new' && n[0] === 'projects') || (activeView === 'import' && n[0] === 'projects'));
     return (n[0] === 'help' && helpOpen) ? item + helpSubmenu() : item;
   }).join('');
   document.getElementById('sideGlobal').innerHTML = g;
@@ -871,6 +871,7 @@ function go(view, arg) {
   else if (view === 'account') showAccount();
   else if (view === 'profile-preview') showProfilePreview();
   else if (view === 'new') showNewProjectForm();
+  else if (view === 'import') showImportForm();
   else if (view === 'help') showHelp(arg || 'getting-started');
   else if (view === 'project') showProject(state.project);
   else if (view === 'updates') showUpdates();
@@ -941,6 +942,7 @@ async function showDashboard() {
       '<div class="home-hero-actions">' +
       '<button class="pl-btn-primary" id="heroOpen">Open the project</button>' +
       '<button class="pl-btn" data-go="new">New project</button>' +
+      '<button class="pl-btn" data-go="import">Import</button>' +
       '</div></section>';
   }
 
@@ -977,7 +979,7 @@ async function showDashboard() {
     '<div class="home-header"><div>' +
     '<h1 class="home-greeting">' + esc(greeting()) + '.</h1>' +
     '<p class="home-subtitle">Here\\u2019s where you left off, what changed, and what to do next.</p>' +
-    '</div><div><button class="pl-btn" data-go="new">New project</button></div></div>' +
+    '</div><div><button class="pl-btn" data-go="import">Import</button> <button class="pl-btn" data-go="new">New project</button></div></div>' +
     hero +
     '<div class="home-columns"><div>' +
     '<div class="section-label section-label--tight">Recent projects</div>' +
@@ -1189,6 +1191,40 @@ function showNewProjectForm() {
   };
 }
 
+/* ---------- Bring a project over (import, no login) ---------- */
+function showImportForm() {
+  renderNav('import');
+  state.view = 'import'; clearProjectState();
+  app.innerHTML = '<div class="screen-padded screen-narrow">' +
+    '<button class="back-link" data-go="projects">\\u2190 My Projects</button>' +
+    '<h1 class="page-title">Bring a project over</h1>' +
+    '<p class="page-sub">Move a whole project from GitHub into Yourkly. Paste the link and Yourkly brings every file over.</p>' +
+    '<div class="wizard-card"><h2>Where is it now?</h2>' +
+    '<p>Paste the GitHub link to the project. Something like github.com/someone/their-project works, or just someone/their-project.</p>' +
+    '<div class="info-callout"><strong>Public projects only.</strong> You do not need a GitHub account, and Yourkly never asks you to log in anywhere else.</div>' +
+    '<label class="form-label" for="importLink">GitHub link</label>' +
+    '<input type="text" id="importLink" placeholder="https://github.com/someone/their-project" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+    '<button class="pl-btn-primary" id="btnImport">Bring it over</button>' +
+    '<div id="importMsg"></div></div></div>';
+  bindGoButtons(app);
+  document.getElementById('btnImport').onclick = async function() {
+    const input = document.getElementById('importLink');
+    const msg = document.getElementById('importMsg');
+    const link = input.value.trim();
+    if (!link) { msg.innerHTML = '<div class="error-box">Paste a GitHub link first.</div>'; return; }
+    msg.innerHTML = '<p>Bringing it over... this can take a minute for big projects.</p>';
+    try {
+      const j = await api('/api/import', 'POST', { link: link });
+      state.project = j.name;
+      state.displayName = j.displayName || j.name;
+      state.importNote = j.skippedLarge
+        ? 'Brought over ' + j.files + ' files. A few very large files were left behind.'
+        : 'Brought over ' + j.files + ' files from GitHub.';
+      go('project');
+    } catch (e) { msg.innerHTML = errBox(e); }
+  };
+}
+
 /* ---------- Project Home ---------- */
 async function showProject(name) {
   renderNav('project');
@@ -1209,6 +1245,10 @@ function renderProjectHome() {
   if (state.justKept) {
     keptBanner = '<div class="ok-banner">Kept the ' + esc(state.justKept) + '\u2019s work. That is the project\u2019s current version now.</div>';
     state.justKept = '';
+  }
+  if (state.importNote) {
+    keptBanner += '<div class="ok-banner">' + esc(state.importNote) + '</div>';
+    state.importNote = '';
   }
   const total = state.savePoints.length;
   const latest = state.savePoints[0];
@@ -2170,7 +2210,7 @@ const TASK_CARDS = [
   { id: 'changes', label: 'I want to see what changed', summary: 'Compare versions and read the story of your project.', answer: '<h3>I want to see what changed</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open \\u201cWhat Changed\\u201d to see every Save Point, newest first.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cSee details\\u201d on any version.</p></div>' },
   { id: 'undo', label: 'I want to undo a mistake', summary: 'Go back to an earlier Save Point without losing anything newer.', answer: '<h3>I want to undo a mistake</h3><div class="walk-step"><span class="step-num">1</span><p>Open \\u201cSave Points\\u201d in your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Find the version you want to go back to.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cGo back to this version\\u201d and confirm.</p></div><div class="walk-step"><span class="step-num">4</span><p>Yourkly puts those files back and saves that as a new Save Point, so nothing newer is ever lost.</p></div>' },
   { id: 'publish', label: 'I want to publish my app', summary: 'What publishing means, and what Yourkly does and does not do yet.', answer: '<h3>I want to publish my app</h3><div class="walk-step"><span class="step-num">1</span><p>Publishing means putting your app on the web so other people can open it in a browser.</p></div><div class="walk-step"><span class="step-num">2</span><p>Yourkly does not publish apps. It keeps your versions safe and helps you work on them.</p></div><div class="walk-step"><span class="step-num">3</span><p>When you are ready, download your files from \\u201cProject Files\\u201d.</p></div><div class="walk-step"><span class="step-num">4</span><p>Put those files online with a web host. Yourkly\\u2019s part is keeping them safe and organized.</p></div>' },
-  { id: 'bring', label: 'I want to bring a project from GitHub', summary: 'Move a project from a repo link into Yourkly. No extra login needed.', answer: '<h3>I want to bring a project from GitHub</h3><div class="walk-step"><span class="step-num">1</span><p>A repo link is a web address that points to a project stored on GitHub.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open the link in your browser. You do not need to log in to see a public project.</p></div><div class="walk-step"><span class="step-num">3</span><p>Download the files you want to bring over.</p></div><div class="walk-step"><span class="step-num">4</span><p>In Yourkly, make a new project and add those files to it.</p></div><div class="walk-step"><span class="step-num">5</span><p>Save, and Yourkly keeps your first Save Point.</p></div>' },
+  { id: 'bring', label: 'I want to bring a project from GitHub', summary: 'Move a whole project from a GitHub link into Yourkly. No login needed.', answer: '<h3>I want to bring a project from GitHub</h3><div class="walk-step"><span class="step-num">1</span><p>Copy the GitHub link to the project. It looks like github.com/someone/their-project.</p></div><div class="walk-step"><span class="step-num">2</span><p>On the Home page, press Import.</p></div><div class="walk-step"><span class="step-num">3</span><p>Paste the link and press Bring it over. Yourkly brings every file over and saves the first Save Point.</p></div><div class="walk-step"><span class="step-num">4</span><p>You land in your new project, ready to work. No GitHub account needed, and only public projects can come over.</p></div>' },
 ];
 function helpTasks() {
   let html = '<h2 class="help-section-title">What are you trying to do?</h2>' +

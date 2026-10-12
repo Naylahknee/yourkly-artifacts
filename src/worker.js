@@ -210,6 +210,114 @@ async function pushCreds(env, name) {
 function json(data, status = 200) {  return Response.json(data, { status });
 }
 
+// --- GitHub migration helpers ---------------------------------------------
+// No GitHub login anywhere. The user pastes a public repo link; we fetch the
+// public tarball from codeload.github.com and bring the whole project over.
+
+const IMPORT_MAX_TARBALL = 50 * 1024 * 1024; // 50MB download cap
+const IMPORT_MAX_FILES = 2000;               // file-count cap
+const IMPORT_MAX_FILE = 5 * 1024 * 1024;     // per-file cap; bigger files are left behind
+
+function parseGitHubLink(link) {
+  let s = String(link || '').trim();
+  if (!s) return null;
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/^www\./i, '');
+  if (s.toLowerCase().startsWith('github.com/')) s = s.slice('github.com/'.length);
+  s = s.split(/[?#]/)[0].replace(/\/+$/, '').replace(/\.git$/i, '');
+  const m = s.match(/^([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)\/([A-Za-z0-9_.-]+)(?:\/.*)?$/);
+  if (!m || !m[1] || !m[2] || m[2].toLowerCase() === 'github.com') return null;
+  return { owner: m[1], repo: m[2] };
+}
+
+function importError(message, status) {
+  const e = new Error(message);
+  e.status = status;
+  return e;
+}
+
+async function fetchRepoTarball(owner, repo) {
+  const url = `https://codeload.github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tar.gz/HEAD`;
+  let res;
+  try {
+    res = await fetch(url, { headers: { 'User-Agent': 'yourkly-artifacts-import' }, redirect: 'follow' });
+  } catch {
+    throw importError('Could not reach GitHub. Check your connection and try again.', 502);
+  }
+  if (res.status === 404) {
+    throw importError('That repo is private or does not exist. Only public repos can be brought over right now.', 404);
+  }
+  if (!res.ok) {
+    throw importError('GitHub did not answer. Check the link and try again.', 502);
+  }
+  const len = Number(res.headers.get('content-length') || 0);
+  if (len > IMPORT_MAX_TARBALL) {
+    throw importError('That project is too big to bring over right now. Try a smaller one.', 422);
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.length > IMPORT_MAX_TARBALL) {
+    throw importError('That project is too big to bring over right now. Try a smaller one.', 422);
+  }
+  return buf;
+}
+
+async function gunzipData(data) {
+  const ds = new DecompressionStream('gzip');
+  const w = ds.writable.getWriter();
+  await w.write(data);
+  await w.close();
+  const chunks = [];
+  for await (const c of ds.readable) chunks.push(c);
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
+// Minimal tar reader: regular files only, first path segment (the
+// "<repo>-HEAD" wrapper) stripped. Returns { files, skippedLarge }.
+function parseTarFiles(data) {
+  const files = {};
+  let skippedLarge = 0;
+  const td = new TextDecoder();
+  const clean = (b) => td.decode(b).replace(/\0[\s\S]*$/, '');
+  let o = 0;
+  let prefix = null;
+  let longName = null;
+  while (o + 512 <= data.length) {
+    const h = data.subarray(o, o + 512);
+    let allZero = true;
+    for (let i = 0; i < 512; i++) { if (h[i] !== 0) { allZero = false; break; } }
+    if (allZero) break;
+    let name = clean(h.subarray(0, 100));
+    const pfx = clean(h.subarray(345, 500));
+    if (pfx) name = pfx + '/' + name;
+    const sizeStr = clean(h.subarray(124, 136)).trim();
+    const size = sizeStr ? parseInt(sizeStr, 8) : 0;
+    const type = String.fromCharCode(h[156]);
+    const dataStart = o + 512;
+    o = dataStart + Math.ceil(size / 512) * 512;
+    if (type === 'L') {
+      longName = clean(data.subarray(dataStart, dataStart + size));
+      continue;
+    }
+    if (type === '5' || name.endsWith('/')) continue; // directory
+    const full = longName || name;
+    longName = null;
+    if (type !== '0' && type !== '\0' && type !== '' && type !== ' ') continue; // symlink, etc.
+    const parts = full.split('/');
+    if (prefix === null) prefix = parts[0];
+    const rel = parts.slice(1).join('/');
+    if (!rel || rel.startsWith('.git/')) continue;
+    if (size > IMPORT_MAX_FILE) { skippedLarge++; continue; }
+    if (Object.keys(files).length >= IMPORT_MAX_FILES) {
+      throw importError('That project has too many files to bring over right now. Try a smaller one.', 422);
+    }
+    files[rel] = data.slice(dataStart, dataStart + size);
+  }
+  return { files, skippedLarge };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -275,6 +383,42 @@ export default {
         return json({ name: created.name, displayName, sha });
       } catch (e) {
         return json({ error: 'Could not start the project: ' + (e.message || e) }, 500);
+      }
+    }
+
+    // --- Bring a project over from GitHub (migration, no login) --------------
+    if (path === '/api/import' && method === 'POST') {
+      try {
+        const { link } = await request.json();
+        const parsed = parseGitHubLink(link);
+        if (!parsed) {
+          return json({ error: 'That does not look like a GitHub link. Try something like github.com/someone/their-project.' }, 400);
+        }
+        const tarball = await fetchRepoTarball(parsed.owner, parsed.repo);
+        const tar = await gunzipData(tarball);
+        const { files, skippedLarge } = parseTarFiles(tar);
+        const names = Object.keys(files);
+        if (names.length === 0) {
+          return json({ error: 'That project came over empty. There were no files to bring in.' }, 422);
+        }
+        const existing = new Set((await listRepos(env)).map(repoNameOf));
+        const base = safeName(parsed.repo);
+        let safe = base;
+        let n = 2;
+        while (existing.has(safe)) safe = base + '-' + (n++);
+        const displayName = parsed.repo.slice(0, 60);
+        const created = await env.ARTIFACTS.create(safe, {
+          description: displayName,
+          setDefaultBranch: 'main',
+        });
+        const sha = await pushCommit({
+          remote: created.remote, token: created.token,
+          ref: 'refs/heads/main', parentSha: null,
+          files, message: 'Brought over from GitHub',
+        });
+        return json({ name: created.name, displayName, files: names.length, skippedLarge, sha });
+      } catch (e) {
+        return json({ error: e.message || 'Could not bring that project over.' }, e.status || 500);
       }
     }
 

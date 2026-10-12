@@ -44,6 +44,15 @@ NaLonni to approve: try-first with email later, yes or no?
 - Land in the project view (Project Home).
 - Status: BUILT.
 
+## 3b. Bring a project over (import)
+
+- From the dashboard ("Import"): "Bring a project over."
+- Paste a GitHub link (full URL or owner/repo shorthand). No GitHub account, no login, no token. Public projects only.
+- Yourkly fetches the whole project and makes it a native Yourkly project: every file lands in its versioned storage, and the first save point is labeled "Brought over from GitHub." You land on Project Home.
+- Clear errors for bad links ("That does not look like a GitHub link."), private or missing repos ("That repo is private or does not exist. Only public repos can be brought over right now."), and oversized projects.
+- GitHub is named only inside this migration flow and its help card, nowhere else.
+- Status: BUILT 2026-10-12.
+
 ## 4. Work on files
 
 - Project Files: folders open with "Show what's inside"; each file has Open, History, Download, Rename, Delete. "Add a file" for new ones.
