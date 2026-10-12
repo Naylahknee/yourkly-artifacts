@@ -613,7 +613,7 @@ export default {
     }
 
     // Save or update the signed-in user's profile (display name + avatar).
-    const AVATARS = ['stork', 'fixer', 'builder', 'polisher'];
+    const AVATARS = ['stork', 'initial'];
     if (path === '/api/auth/profile' && method === 'POST') {
       try {
         const email = await getSessionEmail(request, env);

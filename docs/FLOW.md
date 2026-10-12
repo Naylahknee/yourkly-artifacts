@@ -35,7 +35,8 @@ try it: click "Continue with Yourkly" and you are in.
   will send you a code to type in. No password to remember."
 - Type the 6-digit code (works for 10 minutes). First sign-in goes to
   "Create your profile": "What should Yourkly call you?" (name, required)
-  plus an optional picture pick (stork by default).
+  plus an optional picture pick: the Yourkly stork (pre-selected) or your
+  own initial in a circle. No uploads.
 - Returning users skip profile setup and go straight in.
 - Signed-in projects are saved under the email (repo names carry an
   owner prefix); signed-out users keep the anonymous workspace unchanged.

@@ -495,6 +495,13 @@ test('sign-out without a session is harmless', async () => {
   assert.equal(json.ok, true);
 });
 
+test('avatar picker offers exactly the two approved choices', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes("[['stork', 'Stork'], ['initial', 'Your initial']]"), 'stork + initial only');
+  assert.ok(html.includes('What should Yourkly call you?'), 'profile prompt copy');
+});
+
 test('glossary Helpers entry uses the approved wording', async () => {
   const r = await fetch(BASE + '/app');
   const html = await r.text();
@@ -527,9 +534,13 @@ test('full sign-in flow: code, profile, session, sign-out', async () => {
   assert.equal(v.json.needsProfile, true, 'first sign-in needs a profile');
   assert.ok(v.cookie, 'session cookie set');
   // save the profile
-  const pf = await authed('/api/auth/profile', 'POST', { displayName: 'Testy Tester', avatar: 'builder' }, v.cookie);
+  const pf = await authed('/api/auth/profile', 'POST', { displayName: 'Testy Tester', avatar: 'initial' }, v.cookie);
   assert.equal(pf.status, 200, 'profile save: ' + JSON.stringify(pf.json));
   assert.equal(pf.json.profile.displayName, 'Testy Tester');
+  assert.equal(pf.json.profile.avatar, 'initial', 'two-avatar choice saved');
+  const badAv = await authed('/api/auth/profile', 'POST', { displayName: 'Testy Tester', avatar: 'dragon' }, v.cookie);
+  assert.equal(badAv.status, 200);
+  assert.equal(badAv.json.profile.avatar, 'stork', 'unknown avatar falls back to stork');
   // me shows email + profile
   const me = await authed('/api/auth/me', 'GET', null, v.cookie);
   assert.equal(me.json.email, email);

@@ -268,6 +268,8 @@ const PAGE_STYLE = `
   .avatar-opt { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--yp-grey-light); background: #fff; padding: 4px; cursor: pointer; }
   .avatar-opt img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
   .avatar-opt--on { border-color: var(--yp-purple); box-shadow: 0 0 0 3px var(--yp-lilac-bg); }
+  .avatar-letter { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 28px; font-weight: 700; color: var(--yp-purple); }
+  .pp-avatar .avatar-letter { font-size: 30px; }
 
   /* Profile preview: floating pill, mirrors the original widget */
   .pp-stage { display: grid; place-items: center; padding: 56px 20px; }
@@ -732,14 +734,17 @@ const MASCOT_IMG = {
 };
 const IMG_EMPTY_BASKET = "${IMG_STORK_EMPTY_BASKET}";
 
-// Avatar choices for user profiles. The stork is the default.
-function avatarImg(id) {
-  if (id === 'fixer') return MASCOT_IMG.fixer;
-  if (id === 'builder') return MASCOT_IMG.builder;
-  if (id === 'polisher') return MASCOT_IMG.polisher;
-  return IMG_YOURKLY_STORK;
+// Avatar choices for user profiles: the Yourkly stork (default) or the
+// user's own initial in a circle. Older saved values fall back to the stork.
+// Returns the inner HTML for a circular avatar container.
+function avatarInner(id, name) {
+  if (id === 'initial') {
+    const ch = ((name || '').trim().charAt(0) || 'Y').toUpperCase();
+    return '<span class="avatar-letter">' + esc(ch) + '</span>';
+  }
+  return '<img src="' + IMG_YOURKLY_STORK + '" alt="">';
 }
-const AVATAR_CHOICES = [['stork', 'Stork'], ['fixer', 'Fixer'], ['builder', 'Builder'], ['polisher', 'Polisher']];
+const AVATAR_CHOICES = [['stork', 'Stork'], ['initial', 'Your initial']];
 const app = document.getElementById('app');
 const state = {
   view: 'home', project: null, displayName: null, files: [], savePoints: [],
@@ -1201,7 +1206,7 @@ async function showProfileSetup(edit) {
     '<div class="section-label">Pick a picture (optional)</div>' +
     '<div class="avatar-pick">' + AVATAR_CHOICES.map(function(o) {
       return '<button class="avatar-opt' + (av === o[0] ? ' avatar-opt--on' : '') + '" data-av="' + o[0] + '" aria-label="' + esc(o[1]) + '">' +
-        '<img src="' + avatarImg(o[0]) + '" alt="' + esc(o[1]) + '"></button>';
+        avatarInner(o[0], document.getElementById('pfName') ? document.getElementById('pfName').value : '') + '</button>';
     }).join('') + '</div>' +
     '<div class="cta-row"><button class="pl-btn-primary" id="pfSave">' + (edit ? 'Save' : 'Save and continue') + '</button></div>' +
     '<div id="pfMsg"></div></div></div>';
@@ -1212,6 +1217,11 @@ async function showProfileSetup(edit) {
       picked = b.getAttribute('data-av');
       app.querySelectorAll('[data-av]').forEach(function(x) { x.classList.toggle('avatar-opt--on', x === b); });
     };
+  });
+  // The "your initial" preview follows the name as it is typed.
+  document.getElementById('pfName').addEventListener('input', function() {
+    const el = app.querySelector('[data-av="initial"] .avatar-letter');
+    if (el) el.textContent = ((this.value || '').trim().charAt(0) || 'Y').toUpperCase();
   });
   document.getElementById('pfSave').onclick = async function() {
     const n = document.getElementById('pfName').value.trim();
@@ -1235,7 +1245,7 @@ async function showAccount() {
   if (email) {
     const nm = (profile && profile.displayName) ? profile.displayName : email;
     const av = (profile && profile.avatar) ? profile.avatar : 'stork';
-    topCard = '<div class="account-card"><div class="account-avatar"><img src="' + avatarImg(av) + '" alt=""></div>' +
+    topCard = '<div class="account-card"><div class="account-avatar">' + avatarInner(av, nm) + '</div>' +
       '<div><strong>' + esc(nm) + '</strong><p class="home-empty-note">' + esc(email) + '</p></div></div>' +
       '<p class="cta-row"><button class="pl-btn" id="btnEditProfile">Edit profile</button>' +
       '<button class="pl-btn" id="btnSignOut">Sign out</button></p>';
@@ -1277,19 +1287,19 @@ async function showProfilePreview() {
     if (me.profile && me.profile.displayName) nm = me.profile.displayName;
     if (me.profile && me.profile.avatar) av = me.profile.avatar;
   } catch (e) { /* signed out: defaults */ }
-  const avImg = avatarImg(av);
+  const avInner = avatarInner(av, nm);
   app.innerHTML = '<div class="screen-padded screen-narrow">' +
     '<button class="back-link" data-go="account">\\u2190 Account</button>' +
     '<h1 class="page-title">Profile preview</h1>' +
     '<p class="page-sub">This is what your profile pill looks like to others.</p>' +
     '<div class="pp-stage"><div class="pp-pill" id="ppPill">' +
     '<div class="pp-collapsed">' +
-    '<span class="pp-avatar"><img src="' + avImg + '" alt=""></span>' +
+    '<span class="pp-avatar">' + avInner + '</span>' +
     '<button class="pp-copy" id="ppOpen"><span>Hello, I\\u2019m</span><strong>' + esc(nm) + '</strong></button>' +
     '<button class="pp-plus" id="ppPlus" aria-label="Open profile">+</button>' +
     '</div>' +
     '<div class="pp-expanded">' +
-    '<span class="pp-avatar"><img src="' + avImg + '" alt=""></span>' +
+    '<span class="pp-avatar">' + avInner + '</span>' +
     '<div class="pp-id"><p>Hello, I\\u2019m</p><h2>' + esc(nm) + '</h2>' +
     '<small>A small card that says hello for you, anywhere it appears.</small></div>' +
     '<button class="pp-back" id="ppBack" aria-label="Back">\\u2190</button>' +
