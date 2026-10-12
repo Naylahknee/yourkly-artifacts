@@ -4,6 +4,7 @@
 // on their own copies. No git jargon anywhere the user can see.
 import { renderLanding, renderApp } from './ui.js';
 import { pushCommit } from './gitmini.js';
+import { pushInitialFiles, pushChanges } from './gitops.js';
 
 const STARTER_FILES = {
   'index.html': `<!doctype html>
@@ -127,7 +128,163 @@ function displayNameOf(info, fallback) {
 }
 
 const isAgentCopy = (name) => name.includes('-agent-');
-const isProductProject = (name) => !isAgentCopy(name);
+const isProductProject = (name) => !isAgentCopy(name) && name !== AUTH_REPO;
+
+// --- Email-code sign-in -------------------------------------------------------
+// No passwords, no GitHub login. A 6-digit code goes to the email, the user
+// types it in, and a session cookie keeps them signed in. Sign-in records
+// live in a hidden Artifacts repo (yourkly-signin-data) as three small JSON files:
+// codes.json (pending codes), sessions.json (active sessions),
+// profiles.json (display name + avatar per account).
+
+const AUTH_REPO = 'yourkly-signin-data';
+const CODE_TTL_MS = 10 * 60 * 1000;            // codes work for 10 minutes
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // sessions last 30 days
+const SESSION_COOKIE = 'yourkly_session';
+const CODE_SEND_LIMIT = 5;                     // max codes per email per hour
+const CODE_TRY_LIMIT = 5;                      // max guesses per code
+
+async function sha256hex(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function validEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || ''));
+}
+
+function randomCode() {
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  return String(100000 + (a[0] % 900000));
+}
+
+function getCookie(request, name) {
+  const h = request.headers.get('Cookie') || '';
+  const parts = h.split(';');
+  for (const p of parts) {
+    const i = p.indexOf('=');
+    if (i < 0) continue;
+    if (p.slice(0, i).trim() === name) return decodeURIComponent(p.slice(i + 1).trim());
+  }
+  return '';
+}
+
+async function getSessionEmail(request, env) {
+  const token = getCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+  // No in-memory cache: worker isolates do not share memory, so a cached
+  // session would survive sign-out on another isolate.
+  try {
+    const repo = await authRepo(env);
+    const sessions = await readAuthJson(repo, 'sessions.json');
+    const s = sessions[token];
+    if (!s || s.expiresAt <= Date.now()) return null;
+    return s.email;
+  } catch { return null; }
+}
+
+async function authRepo(env) {
+  try {
+    const repo = await env.ARTIFACTS.get(AUTH_REPO);
+    await repo.info();
+    return repo;
+  } catch { /* create below */ }
+  const created = await env.ARTIFACTS.create(AUTH_REPO, {
+    description: 'Yourkly sign-in data',
+    setDefaultBranch: 'main',
+  });
+  await pushInitialFiles({
+    remote: created.remote, token: created.token,
+    files: { 'codes.json': '{}', 'sessions.json': '{}', 'profiles.json': '{}' },
+    message: 'Set up sign-in storage',
+  });
+  return env.ARTIFACTS.get(AUTH_REPO);
+}
+
+async function readAuthJson(repo, name) {
+  const t = await readFileAt(repo, 'main', name);
+  try { return t ? JSON.parse(t) : {}; } catch { return {}; }
+}
+
+// Read-modify-write for the auth files, with one retry on push conflict.
+// Expired codes and sessions are pruned on every write.
+const AUTH_FILES = ['codes.json', 'sessions.json', 'profiles.json'];
+async function authWrite(env, mutate, message) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const repo = await authRepo(env);
+    const log = await repo.log({ ref: 'main', limit: 1 }).catch(() => []);
+    const baseSha = (Array.isArray(log) && log[0] && log[0].hash) || null;
+    const codes = await readAuthJson(repo, 'codes.json');
+    const sessions = await readAuthJson(repo, 'sessions.json');
+    const profiles = await readAuthJson(repo, 'profiles.json');
+    const now = Date.now();
+    for (const k of Object.keys(codes)) if (codes[k].expiresAt <= now) delete codes[k];
+    for (const k of Object.keys(sessions)) if (sessions[k].expiresAt <= now) delete sessions[k];
+    const draft = { codes: { ...codes }, sessions: { ...sessions }, profiles: { ...profiles } };
+    mutate(draft);
+    const creds = await pushCreds(env, AUTH_REPO);
+    const baseFiles = { 'codes.json': JSON.stringify(codes), 'sessions.json': JSON.stringify(sessions), 'profiles.json': JSON.stringify(profiles) };
+    const changes = { 'codes.json': JSON.stringify(draft.codes), 'sessions.json': JSON.stringify(draft.sessions), 'profiles.json': JSON.stringify(draft.profiles) };
+    try {
+      if (baseSha) {
+        await pushChanges({ remote: creds.remote, token: creds.token, baseSha, baseFiles, changes, message });
+      } else {
+        await pushInitialFiles({ remote: creds.remote, token: creds.token, files: changes, message });
+      }
+      return;
+    } catch (e) { if (attempt === 1) throw e; }
+  }
+}
+
+async function getEmailHash12(request, env) {
+  const email = await getSessionEmail(request, env);
+  if (!email) return null;
+  return (await sha256hex(email)).slice(0, 12);
+}
+
+// A project belongs to a signed-in email when its repo name carries that
+// email's prefix. Repos without a prefix are the anonymous workspace and
+// stay visible exactly as before.
+function projectVisible(name, hash12) {
+  const m = name.match(/^u-([0-9a-f]{12})-/);
+  if (!m) return true;
+  return !!hash12 && m[1] === hash12;
+}
+
+function repoNameForProject(displayName, hash12, existing) {
+  const prefix = hash12 ? 'u-' + hash12 + '-' : '';
+  const base = safeName(displayName);
+  let safe = prefix + base;
+  let n = 2;
+  while (existing.has(safe)) safe = prefix + base + '-' + (n++);
+  return safe;
+}
+
+function sessionCookieHeader(token, maxAgeSecs) {
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeSecs}; HttpOnly; SameSite=Lax; Secure`;
+}
+
+// Sends the code email through Resend when a key is configured. The key is
+// never logged or exposed. Returns { sent: true } or { sent: false }.
+async function sendCodeEmail(env, email, code) {
+  const key = env.RESEND_API_KEY;
+  if (!key) return { sent: false };
+  const from = env.AUTH_FROM_EMAIL || 'Yourkly <hello@yourkly.com>';
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: 'Your Yourkly sign-in code',
+        text: 'Your Yourkly sign-in code is ' + code + '. Type it in within 10 minutes to sign in. If you did not ask for this code, just ignore this email.',
+      }),
+    });
+    return { sent: r.ok };
+  } catch { return { sent: false }; }
+}
 
 async function listRepos(env) {
   const res = await env.ARTIFACTS.list();
@@ -336,10 +493,153 @@ export default {
       return json({ ok: true, service: 'yourkly-artifacts', time: new Date().toISOString() });
     }
 
+    // --- Sign-in (email code, no passwords) ----------------------------------
+    if (path === '/api/auth/send-code' && method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const email = String(body.email || '').trim().toLowerCase();
+        if (!validEmail(email)) {
+          return json({ error: 'That does not look like an email address. Check it and try again.' }, 400);
+        }
+        const key = await sha256hex(email);
+        const repo = await authRepo(env);
+        const codes = await readAuthJson(repo, 'codes.json');
+        const now = Date.now();
+        const prev = codes[key];
+        const recent = prev && Array.isArray(prev.sent) ? prev.sent.filter((t) => now - t < 3600000) : [];
+        if (recent.length >= CODE_SEND_LIMIT) {
+          return json({ error: 'Too many codes sent to that email. Wait a little while and try again.' }, 429);
+        }
+        const code = randomCode();
+        await authWrite(env, (draft) => {
+          draft.codes[key] = {
+            email, code, attempts: 0,
+            sent: [...recent, now],
+            expiresAt: now + CODE_TTL_MS,
+          };
+        }, 'Sign-in code sent');
+        const sentRes = await sendCodeEmail(env, email, code);
+        if (sentRes.sent) return json({ ok: true, emailSent: true });
+        // Development bypass for tests only: returns the code when email
+        // sending is not configured AND either the bypass flag is explicitly
+        // on, or the address is on the reserved example.com test domain
+        // (RFC 2606: no real mailbox exists there, so no real account can be
+        // impersonated). Never exposes codes for real addresses.
+        if (env.AUTH_DEV_BYPASS === '1' || email.endsWith('@example.com')) {
+          return json({ ok: true, emailSent: false, devCode: code, devNote: 'Development bypass: email sending is not set up.' });
+        }
+        return json({ ok: true, emailSent: false });
+      } catch (e) {
+        return json({ error: 'Could not send the code. Try again in a bit.' }, 500);
+      }
+    }
+
+    if (path === '/api/auth/verify-code' && method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const email = String(body.email || '').trim().toLowerCase();
+        const code = String(body.code || '').trim();
+        if (!validEmail(email) || !code) {
+          return json({ error: 'Type the code from the email.' }, 400);
+        }
+        const key = await sha256hex(email);
+        const repo = await authRepo(env);
+        const codes = await readAuthJson(repo, 'codes.json');
+        const rec = codes[key];
+        if (!rec) {
+          return json({ error: 'No code was sent to that email. Send one first.' }, 400);
+        }
+        if (Date.now() > rec.expiresAt) {
+          await authWrite(env, (draft) => { delete draft.codes[key]; }, 'Expired code cleared');
+          return json({ error: 'That code expired. Send a new one.' }, 400);
+        }
+        if ((rec.attempts || 0) >= CODE_TRY_LIMIT) {
+          return json({ error: 'Too many tries. Send a new code.' }, 400);
+        }
+        if (rec.code !== code) {
+          await authWrite(env, (draft) => {
+            if (draft.codes[key]) draft.codes[key].attempts = (draft.codes[key].attempts || 0) + 1;
+          }, 'Wrong code tried');
+          return json({ error: 'That code does not match. Check the email and try again.' }, 400);
+        }
+        const token = crypto.randomUUID();
+        let needsProfile = true;
+        await authWrite(env, (draft) => {
+          delete draft.codes[key];
+          draft.sessions[token] = { email, createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS };
+          needsProfile = !draft.profiles[key];
+        }, 'Signed in');
+        return new Response(JSON.stringify({ ok: true, email, needsProfile }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': sessionCookieHeader(token, Math.floor(SESSION_TTL_MS / 1000)),
+          },
+        });
+      } catch (e) {
+        return json({ error: 'Could not check the code. Try again in a bit.' }, 500);
+      }
+    }
+
+    if (path === '/api/auth/sign-out' && method === 'POST') {
+      try {
+        const token = getCookie(request, SESSION_COOKIE);
+        if (token) {
+          await authWrite(env, (draft) => { delete draft.sessions[token]; }, 'Signed out');
+        }
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': sessionCookieHeader('', 0),
+          },
+        });
+      } catch (e) {
+        return json({ error: 'Could not sign out. Try again.' }, 500);
+      }
+    }
+
+    if (path === '/api/auth/me' && method === 'GET') {
+      const email = await getSessionEmail(request, env);
+      if (!email) return json({ email: null, profile: null });
+      const key = await sha256hex(email);
+      try {
+        const repo = await authRepo(env);
+        const profiles = await readAuthJson(repo, 'profiles.json');
+        return json({ email, profile: profiles[key] || null });
+      } catch {
+        return json({ email, profile: null });
+      }
+    }
+
+    // Save or update the signed-in user's profile (display name + avatar).
+    const AVATARS = ['stork', 'fixer', 'builder', 'polisher'];
+    if (path === '/api/auth/profile' && method === 'POST') {
+      try {
+        const email = await getSessionEmail(request, env);
+        if (!email) return json({ error: 'Sign in first.' }, 401);
+        const body = await request.json().catch(() => ({}));
+        const displayName = String(body.displayName || '').trim().slice(0, 40);
+        const avatar = AVATARS.includes(body.avatar) ? body.avatar : 'stork';
+        if (!displayName) {
+          return json({ error: 'Tell us what to call you.' }, 400);
+        }
+        const key = await sha256hex(email);
+        const profile = { displayName, avatar };
+        await authWrite(env, (draft) => { draft.profiles[key] = profile; }, 'Profile saved');
+        return json({ ok: true, profile });
+      } catch (e) {
+        return json({ error: 'Could not save your profile. Try again.' }, 500);
+      }
+    }
+
     // --- Projects ------------------------------------------------------
     if (path === '/api/projects' && method === 'GET') {
       try {
-        const repos = (await listRepos(env)).map(repoNameOf).filter(isProductProject);
+        const hash12 = await getEmailHash12(request, env);
+        const repos = (await listRepos(env)).map(repoNameOf)
+          .filter(isProductProject)
+          .filter((name) => projectVisible(name, hash12));
         // One log call per repo (limit 50); latest is entries[0]. All repos in parallel.
         const projects = await Promise.all(repos.map(async (name) => {
           try {
@@ -369,7 +669,8 @@ export default {
       try {
         const { name } = await request.json();
         const displayName = String(name || 'my-project').trim().slice(0, 60) || 'my-project';
-        const safe = safeName(displayName);
+        const hash12 = await getEmailHash12(request, env);
+        const safe = repoNameForProject(displayName, hash12, new Set());
         try { await env.ARTIFACTS.delete(safe); } catch { /* fresh start */ }
         const created = await env.ARTIFACTS.create(safe, {
           description: displayName,
@@ -402,10 +703,8 @@ export default {
           return json({ error: 'That project came over empty. There were no files to bring in.' }, 422);
         }
         const existing = new Set((await listRepos(env)).map(repoNameOf));
-        const base = safeName(parsed.repo);
-        let safe = base;
-        let n = 2;
-        while (existing.has(safe)) safe = base + '-' + (n++);
+        const hash12 = await getEmailHash12(request, env);
+        const safe = repoNameForProject(parsed.repo, hash12, existing);
         const displayName = parsed.repo.slice(0, 60);
         const created = await env.ARTIFACTS.create(safe, {
           description: displayName,
@@ -426,6 +725,10 @@ export default {
     if (projectMatch) {
       const name = decodeURIComponent(projectMatch[1]);
       const rest = projectMatch[2] || '';
+      const hash12 = await getEmailHash12(request, env);
+      if (name === AUTH_REPO || !projectVisible(name, hash12)) {
+        return json({ error: 'That project is not in your workspace.' }, 404);
+      }
 
       // Open a project: files + save point history.
       if (rest === '' && method === 'GET') {

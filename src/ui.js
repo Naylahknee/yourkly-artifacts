@@ -263,6 +263,11 @@ const PAGE_STYLE = `
   /* Account */
   .account-card { background: #fff; border: 1px solid var(--yp-grey-light); border-radius: 14px; padding: 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
   .account-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--yp-lilac-bg); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: var(--yp-purple); flex-shrink: 0; }
+  .account-avatar img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+  .avatar-pick { display: flex; gap: 10px; margin: 8px 0 16px; flex-wrap: wrap; }
+  .avatar-opt { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--yp-grey-light); background: #fff; padding: 4px; cursor: pointer; }
+  .avatar-opt img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .avatar-opt--on { border-color: var(--yp-purple); box-shadow: 0 0 0 3px var(--yp-lilac-bg); }
 
   /* Profile preview: floating pill, mirrors the original widget */
   .pp-stage { display: grid; place-items: center; padding: 56px 20px; }
@@ -616,7 +621,7 @@ export function renderLanding() {
       <img class="brand-stork" src="${IMG_YOURKLY_STORK}" alt="">
       <img class="brand-wordmark" src="${IMG_YOURKLY_WORDMARK}" alt="Yourkly">
     </div>
-    <a class="landing-signin" href="/app">Sign in</a>
+    <a class="landing-signin" href="/app#signin">Sign in</a>
   </header>
 
   <main>
@@ -726,6 +731,15 @@ const MASCOT_IMG = {
   polisher: "${IMG_STORK_POLISHER}"
 };
 const IMG_EMPTY_BASKET = "${IMG_STORK_EMPTY_BASKET}";
+
+// Avatar choices for user profiles. The stork is the default.
+function avatarImg(id) {
+  if (id === 'fixer') return MASCOT_IMG.fixer;
+  if (id === 'builder') return MASCOT_IMG.builder;
+  if (id === 'polisher') return MASCOT_IMG.polisher;
+  return IMG_YOURKLY_STORK;
+}
+const AVATAR_CHOICES = [['stork', 'Stork'], ['fixer', 'Fixer'], ['builder', 'Builder'], ['polisher', 'Polisher']];
 const app = document.getElementById('app');
 const state = {
   view: 'home', project: null, displayName: null, files: [], savePoints: [],
@@ -869,6 +883,8 @@ function go(view, arg) {
   else if (view === 'projects') showProjects();
   else if (view === 'activity') showActivity();
   else if (view === 'account') showAccount();
+  else if (view === 'signin') showSignin();
+  else if (view === 'profile-setup') showProfileSetup(arg);
   else if (view === 'profile-preview') showProfilePreview();
   else if (view === 'new') showNewProjectForm();
   else if (view === 'import') showImportForm();
@@ -975,10 +991,17 @@ async function showDashboard() {
     });
   }
 
+  let signinNudge = false;
+  try {
+    const me = await api('/api/auth/me');
+    signinNudge = !me.email && projects.length > 0;
+  } catch (e) { signinNudge = projects.length > 0; }
+
   app.innerHTML = '<div class="screen-padded">' +
     '<div class="home-header"><div>' +
     '<h1 class="home-greeting">' + esc(greeting()) + '.</h1>' +
     '<p class="home-subtitle">Here\\u2019s where you left off, what changed, and what to do next.</p>' +
+    (signinNudge ? '<div class="info-callout"><strong>Want these projects on any device?</strong> Sign in with your email. No password to remember. <button class="text-link" data-go="signin">Sign in \\u2192</button></div>' : '') +
     '</div><div><button class="pl-btn" data-go="import">Import</button> <button class="pl-btn" data-go="new">New project</button></div></div>' +
     hero +
     '<div class="home-columns"><div>' +
@@ -1099,17 +1122,134 @@ async function showActivity() {
   });
 }
 
+/* ---------- Sign in (email code, no password) ---------- */
+async function showSignin() {
+  renderNav('signin');
+  state.view = 'signin'; clearProjectState();
+  try {
+    const me = await api('/api/auth/me');
+    if (me.email) { go('home'); return; }
+  } catch (e) { /* not signed in, show the form */ }
+  app.innerHTML = '<div class="screen-padded screen-narrow">' +
+    '<h1 class="page-title">Sign in</h1>' +
+    '<p class="page-sub">Type your email. We will send you a code to type in. No password to remember.</p>' +
+    '<div id="siStep1"><div class="wizard-card">' +
+    '<label class="form-label" for="siEmail">Your email</label>' +
+    '<input type="email" id="siEmail" placeholder="you@example.com" autocomplete="email">' +
+    '<div class="cta-row"><button class="pl-btn-primary" id="siSend">Send me a code</button></div>' +
+    '<div id="siMsg1"></div></div></div>' +
+    '<div id="siStep2" class="hidden"><div class="wizard-card">' +
+    '<p class="form-hint" id="siSentTo"></p>' +
+    '<label class="form-label" for="siCode">Your code</label>' +
+    '<input type="text" id="siCode" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code">' +
+    '<div class="cta-row"><button class="pl-btn-primary" id="siVerify">Sign in</button>' +
+    '<button class="pl-btn" id="siResend">Send a new code</button></div>' +
+    '<div id="siMsg2"></div></div></div></div>';
+  bindGoButtons(app);
+  const emailInput = document.getElementById('siEmail');
+  const msg1 = document.getElementById('siMsg1');
+  async function sendCode() {
+    const email = emailInput.value.trim();
+    if (!email) { msg1.innerHTML = errBox(new Error('Type your email first.')); return; }
+    msg1.innerHTML = '<p>Sending the code...</p>';
+    try {
+      const j = await api('/api/auth/send-code', 'POST', { email: email });
+      if (j.emailSent === false && !j.devCode) {
+        msg1.innerHTML = errBox(new Error('We could not send the email just now. Try again in a bit.'));
+        return;
+      }
+      document.getElementById('siStep1').classList.add('hidden');
+      document.getElementById('siStep2').classList.remove('hidden');
+      document.getElementById('siSentTo').textContent = 'We sent a code to ' + email + '. It works for 10 minutes.';
+      document.getElementById('siCode').focus();
+    } catch (e) { msg1.innerHTML = errBox(e); }
+  }
+  document.getElementById('siSend').onclick = sendCode;
+  document.getElementById('siResend').onclick = async function() {
+    document.getElementById('siStep2').classList.add('hidden');
+    document.getElementById('siStep1').classList.remove('hidden');
+    msg1.innerHTML = '';
+  };
+  document.getElementById('siVerify').onclick = async function() {
+    const code = document.getElementById('siCode').value.trim();
+    const msg2 = document.getElementById('siMsg2');
+    if (!code) { msg2.innerHTML = errBox(new Error('Type the code from the email.')); return; }
+    msg2.innerHTML = '<p>Checking...</p>';
+    try {
+      const vj = await api('/api/auth/verify-code', 'POST', { email: emailInput.value.trim(), code: code });
+      if (vj.needsProfile) go('profile-setup');
+      else go('home');
+    } catch (e) { msg2.innerHTML = errBox(e); }
+  };
+}
+
+/* ---------- Create / edit profile ---------- */
+async function showProfileSetup(edit) {
+  renderNav(edit ? 'account' : 'signin');
+  state.view = 'profile-setup'; clearProjectState();
+  let me = null;
+  try { me = await api('/api/auth/me'); } catch (e) { /* no session */ }
+  if (!me || !me.email) { go('signin'); return; }
+  const existing = me.profile || {};
+  const av = existing.avatar || 'stork';
+  app.innerHTML = '<div class="screen-padded screen-narrow">' +
+    '<h1 class="page-title">' + (edit ? 'Edit your profile' : 'Create your profile') + '</h1>' +
+    '<p class="page-sub">What should Yourkly call you?</p>' +
+    '<div class="wizard-card">' +
+    '<label class="form-label" for="pfName">Your name</label>' +
+    '<input type="text" id="pfName" placeholder="What should we call you?" value="' + esc(existing.displayName || '') + '" autocomplete="off">' +
+    '<div class="section-label">Pick a picture (optional)</div>' +
+    '<div class="avatar-pick">' + AVATAR_CHOICES.map(function(o) {
+      return '<button class="avatar-opt' + (av === o[0] ? ' avatar-opt--on' : '') + '" data-av="' + o[0] + '" aria-label="' + esc(o[1]) + '">' +
+        '<img src="' + avatarImg(o[0]) + '" alt="' + esc(o[1]) + '"></button>';
+    }).join('') + '</div>' +
+    '<div class="cta-row"><button class="pl-btn-primary" id="pfSave">' + (edit ? 'Save' : 'Save and continue') + '</button></div>' +
+    '<div id="pfMsg"></div></div></div>';
+  bindGoButtons(app);
+  let picked = av;
+  app.querySelectorAll('[data-av]').forEach(function(b) {
+    b.onclick = function() {
+      picked = b.getAttribute('data-av');
+      app.querySelectorAll('[data-av]').forEach(function(x) { x.classList.toggle('avatar-opt--on', x === b); });
+    };
+  });
+  document.getElementById('pfSave').onclick = async function() {
+    const n = document.getElementById('pfName').value.trim();
+    const msg = document.getElementById('pfMsg');
+    if (!n) { msg.innerHTML = errBox(new Error('Tell us what to call you.')); return; }
+    msg.innerHTML = '<p>Saving...</p>';
+    try {
+      await api('/api/auth/profile', 'POST', { displayName: n, avatar: picked });
+      go(edit ? 'account' : 'home');
+    } catch (e) { msg.innerHTML = errBox(e); }
+  };
+}
+
 /* ---------- Account ---------- */
-function showAccount() {
+async function showAccount() {
   renderNav('account');
   state.view = 'account'; clearProjectState();
+  let email = null, profile = null;
+  try { const me = await api('/api/auth/me'); email = me.email || null; profile = me.profile || null; } catch (e) { /* signed out */ }
+  let topCard;
+  if (email) {
+    const nm = (profile && profile.displayName) ? profile.displayName : email;
+    const av = (profile && profile.avatar) ? profile.avatar : 'stork';
+    topCard = '<div class="account-card"><div class="account-avatar"><img src="' + avatarImg(av) + '" alt=""></div>' +
+      '<div><strong>' + esc(nm) + '</strong><p class="home-empty-note">' + esc(email) + '</p></div></div>' +
+      '<p class="cta-row"><button class="pl-btn" id="btnEditProfile">Edit profile</button>' +
+      '<button class="pl-btn" id="btnSignOut">Sign out</button></p>';
+  } else {
+    topCard = '<div class="account-card"><div class="account-avatar">Y</div>' +
+      '<div><strong>Hi there.</strong><p class="home-empty-note">You are using Yourkly without signing in.</p></div></div>' +
+      '<div class="help-card"><h2>Keep your projects anywhere</h2>' +
+      '<p>Sign in with your email and your projects are waiting for you on any device. No password to remember.</p>' +
+      '<button class="pl-btn-primary" data-go="signin">Sign in</button></div>';
+  }
   app.innerHTML = '<div class="screen-padded screen-narrow">' + backToHome() +
     '<h1 class="page-title">Account</h1>' +
     '<p class="page-sub">How Yourkly knows it is you.</p>' +
-    '<div class="account-card"><div class="account-avatar">Y</div>' +
-    '<div><strong>Hi there.</strong><p class="home-empty-note">You are using Yourkly without an account.</p></div></div>' +
-    '<div class="help-card"><h2>No sign-in needed</h2>' +
-    '<p>Yourkly works without a login. Your projects are saved and kept safe, and everything stays in your own workspace.</p></div>' +
+    topCard +
     '<div class="help-card"><h2>Your projects</h2>' +
     '<p>Only you can open your projects from here. Nothing is shared unless you share it yourself.</p></div>' +
     '<div class="help-card"><h2>Your profile pill</h2>' +
@@ -1117,25 +1257,40 @@ function showAccount() {
     '<button class="pl-btn" data-go="profile-preview">Preview the pill</button></div>' +
     '</div>';
   bindGoButtons(app);
+  const ep = document.getElementById('btnEditProfile');
+  if (ep) ep.onclick = function() { go('profile-setup', true); };
+  const so = document.getElementById('btnSignOut');
+  if (so) so.onclick = async function() {
+    so.disabled = true;
+    try { await api('/api/auth/sign-out', 'POST'); } catch (e) { /* still leave */ }
+    go('account');
+  };
 }
 
 /* ---------- Profile preview: floating pill, mirrors the original widget ---------- */
-function showProfilePreview() {
+async function showProfilePreview() {
   renderNav('account');
   state.view = 'profile-preview'; clearProjectState();
+  let nm = 'Your profile', av = 'stork';
+  try {
+    const me = await api('/api/auth/me');
+    if (me.profile && me.profile.displayName) nm = me.profile.displayName;
+    if (me.profile && me.profile.avatar) av = me.profile.avatar;
+  } catch (e) { /* signed out: defaults */ }
+  const avImg = avatarImg(av);
   app.innerHTML = '<div class="screen-padded screen-narrow">' +
     '<button class="back-link" data-go="account">\\u2190 Account</button>' +
     '<h1 class="page-title">Profile preview</h1>' +
     '<p class="page-sub">This is what your profile pill looks like to others.</p>' +
     '<div class="pp-stage"><div class="pp-pill" id="ppPill">' +
     '<div class="pp-collapsed">' +
-    '<span class="pp-avatar"><img src="' + IMG_YOURKLY_STORK + '" alt=""></span>' +
-    '<button class="pp-copy" id="ppOpen"><span>Hello, I\\u2019m</span><strong>Your profile</strong></button>' +
+    '<span class="pp-avatar"><img src="' + avImg + '" alt=""></span>' +
+    '<button class="pp-copy" id="ppOpen"><span>Hello, I\\u2019m</span><strong>' + esc(nm) + '</strong></button>' +
     '<button class="pp-plus" id="ppPlus" aria-label="Open profile">+</button>' +
     '</div>' +
     '<div class="pp-expanded">' +
-    '<span class="pp-avatar"><img src="' + IMG_YOURKLY_STORK + '" alt=""></span>' +
-    '<div class="pp-id"><p>Hello, I\\u2019m</p><h2>Your profile</h2>' +
+    '<span class="pp-avatar"><img src="' + avImg + '" alt=""></span>' +
+    '<div class="pp-id"><p>Hello, I\\u2019m</p><h2>' + esc(nm) + '</h2>' +
     '<small>A small card that says hello for you, anywhere it appears.</small></div>' +
     '<button class="pp-back" id="ppBack" aria-label="Back">\\u2190</button>' +
     '</div>' +
@@ -2242,7 +2397,7 @@ const GLOSSARY = [
   ['What changed?', '', 'The one line you write when you save, so future-you can find that version again.'],
   ['Main version', 'current version', 'The real, current version of your project. This is what you work in unless you choose otherwise.'],
   ['Separate version', 'copy', 'A safe copy of the whole project so you can try something without touching your main version.'],
-  ['Helpers', '', 'Three helpers, the fixer, the builder, and the polisher, that each take a copy of your project and work at the same time.'],
+  ['Helpers', '', 'The fixer, the builder, and the polisher. Each takes a copy of your project and works at the same time.'],
   ['Restore an earlier version', '', 'Put the files back the way they were at an earlier Save Point. Nothing newer is deleted.'],
   ['Changes not saved yet', 'unsaved edits', 'Edits you have made but not saved. They are not kept until you save them.'],
   ['Project files', '', 'The folders and files inside your project.'],
@@ -2315,7 +2470,7 @@ function helpContact() {
     '<p class="help-section-intro" style="margin-top:12px;max-width:62ch">This opens a new report with your answers already filled in. Nothing is sent until you press Submit there, and you can edit every word first.</p>';
 }
 
-showDashboard();
+if (location.hash === '#signin') { history.replaceState(null, '', '/app'); go('signin'); } else { showDashboard(); }
 </script>
 </body>
 </html>`;

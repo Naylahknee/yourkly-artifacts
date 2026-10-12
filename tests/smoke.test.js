@@ -456,3 +456,124 @@ test('import brings a whole public project over, then cleans up', async () => {
   const del = await api('/api/projects/' + encodeURIComponent(json.name), 'DELETE');
   assert.equal(del.status, 200);
 });
+
+test('landing sign-in points at the in-app sign-in screen', async () => {
+  const r = await fetch(BASE + '/');
+  const html = await r.text();
+  assert.ok(html.includes('href="/app#signin"'), 'sign in link opens the sign-in screen');
+  assert.ok(html.includes('Type your email. We will send you a code to type in. No password to remember.') === false, 'landing itself stays clean');
+});
+
+test('app shell contains the sign-in view copy', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('No password to remember.'), 'sign-in screen copy present');
+  assert.ok(html.includes('We will send you a code to type in.'), 'code step copy present');
+});
+
+test('send-code rejects a bad email address', async () => {
+  const { status, json } = await api('/api/auth/send-code', 'POST', { email: 'not-an-email' });
+  assert.equal(status, 400);
+  assert.ok(/email address/i.test(json.error), 'plain-language error: ' + json.error);
+});
+
+test('verify-code with no pending code explains what to do', async () => {
+  const { status, json } = await api('/api/auth/verify-code', 'POST', { email: 'nobody-here-' + Date.now() + '@example.com', code: '123456' });
+  assert.equal(status, 400);
+  assert.ok(/Send one first/i.test(json.error), 'tells the user to send a code: ' + json.error);
+});
+
+test('me reports signed-out without a session', async () => {
+  const { status, json } = await api('/api/auth/me');
+  assert.equal(status, 200);
+  assert.equal(json.email, null);
+});
+
+test('sign-out without a session is harmless', async () => {
+  const { status, json } = await api('/api/auth/sign-out', 'POST', {});
+  assert.equal(status, 200);
+  assert.equal(json.ok, true);
+});
+
+test('glossary Helpers entry uses the approved wording', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('The fixer, the builder, and the polisher. Each takes a copy of your project and works at the same time.'), 'helpers glossary copy');
+});
+
+test('full sign-in flow: code, profile, session, sign-out', async () => {
+  const email = 'flowtest-' + Date.now() + '@example.com';
+  const authed = async (path, method, body, cookie) => {
+    const r = await fetch(BASE + path, {
+      method: method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const sc = r.headers.get('set-cookie') || '';
+    const m = sc.match(/yourkly_session=([^;]*)/);
+    return { status: r.status, json: await r.json().catch(() => ({})), cookie: m ? 'yourkly_session=' + m[1] : '' };
+  };
+  // send code (example.com test domain returns the code for tests)
+  let s = await authed('/api/auth/send-code', 'POST', { email });
+  assert.equal(s.status, 200, 'send-code: ' + JSON.stringify(s.json));
+  assert.ok(/^\d{6}$/.test(s.json.devCode || ''), 'test code returned');
+  // wrong code rejected
+  let v = await authed('/api/auth/verify-code', 'POST', { email, code: '000000' });
+  assert.equal(v.status, 400, 'wrong code rejected');
+  // right code signs in, first-timer needs a profile
+  v = await authed('/api/auth/verify-code', 'POST', { email, code: s.json.devCode });
+  assert.equal(v.status, 200, 'verify: ' + JSON.stringify(v.json));
+  assert.equal(v.json.email, email);
+  assert.equal(v.json.needsProfile, true, 'first sign-in needs a profile');
+  assert.ok(v.cookie, 'session cookie set');
+  // save the profile
+  const pf = await authed('/api/auth/profile', 'POST', { displayName: 'Testy Tester', avatar: 'builder' }, v.cookie);
+  assert.equal(pf.status, 200, 'profile save: ' + JSON.stringify(pf.json));
+  assert.equal(pf.json.profile.displayName, 'Testy Tester');
+  // me shows email + profile
+  const me = await authed('/api/auth/me', 'GET', null, v.cookie);
+  assert.equal(me.json.email, email);
+  assert.equal(me.json.profile.displayName, 'Testy Tester');
+  // profile rejects an empty name
+  const bad = await authed('/api/auth/profile', 'POST', { displayName: '  ' }, v.cookie);
+  assert.equal(bad.status, 400, 'empty name rejected');
+  // a project made while signed in belongs to the account
+  const p = await authed('/api/projects', 'POST', { name: 'Flow Probe ' + Date.now() }, v.cookie);
+  assert.equal(p.status, 200, 'project create: ' + JSON.stringify(p.json));
+  assert.ok(/^u-[0-9a-f]{12}-/.test(p.json.name), 'owner prefix: ' + p.json.name);
+  const listIn = await authed('/api/projects', 'GET', null, v.cookie);
+  assert.ok(listIn.json.projects.some((x) => x.name === p.json.name), 'signed-in list shows it');
+  const listOut = await authed('/api/projects');
+  assert.ok(!listOut.json.projects.some((x) => x.name === p.json.name), 'signed-out list hides it');
+  const direct = await authed('/api/projects/' + encodeURIComponent(p.json.name));
+  assert.equal(direct.status, 404, 'signed-out direct access blocked');
+  await authed('/api/projects/' + encodeURIComponent(p.json.name), 'DELETE', null, v.cookie);
+  // sign out clears the session
+  const so = await authed('/api/auth/sign-out', 'POST', {}, v.cookie);
+  assert.equal(so.status, 200);
+  const me2 = await authed('/api/auth/me', 'GET', null, v.cookie);
+  assert.equal(me2.json.email, null, 'signed out');
+});
+
+test('returning user skips profile creation', async () => {
+  const email = 'returning-' + Date.now() + '@example.com';
+  const authed = async (path, method, body, cookie) => {
+    const r = await fetch(BASE + path, {
+      method: method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const sc = r.headers.get('set-cookie') || '';
+    const m = sc.match(/yourkly_session=([^;]*)/);
+    return { status: r.status, json: await r.json().catch(() => ({})), cookie: m ? 'yourkly_session=' + m[1] : '' };
+  };
+  let s = await authed('/api/auth/send-code', 'POST', { email });
+  let v = await authed('/api/auth/verify-code', 'POST', { email, code: s.json.devCode });
+  await authed('/api/auth/profile', 'POST', { displayName: 'Returner', avatar: 'stork' }, v.cookie);
+  await authed('/api/auth/sign-out', 'POST', {}, v.cookie);
+  s = await authed('/api/auth/send-code', 'POST', { email });
+  v = await authed('/api/auth/verify-code', 'POST', { email, code: s.json.devCode });
+  assert.equal(v.status, 200);
+  assert.equal(v.json.needsProfile, false, 'returning user skips profile setup');
+  await authed('/api/auth/sign-out', 'POST', {}, v.cookie);
+});

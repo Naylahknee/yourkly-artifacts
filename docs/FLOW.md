@@ -26,16 +26,29 @@ from Yourkly.
   see. The tech story lives in the repo and the demo video, not the page.
 - Status: BUILT (reverted 2026-10-12 to mirror the original).
 
-## 2. Sign up — DECISION NEEDED
+## 2. Sign in — BUILT 2026-10-12
 
-Recommendation: no account needed to try it. Click "Start a project,"
-name it, and you are in. Judges will not sign up for anything, and the
-demo must work in one click.
+Try-first, email later (NaLonni approved 2026-10-12). No account needed to
+try it: click "Continue with Yourkly" and you are in.
 
-When someone wants to keep their projects across devices, ask for email
-then (code sent to their inbox, the way the main Yourkly does it).
-
-NaLonni to approve: try-first with email later, yes or no?
+- Landing "Sign in" opens the in-app sign-in screen: "Type your email. We
+  will send you a code to type in. No password to remember."
+- Type the 6-digit code (works for 10 minutes). First sign-in goes to
+  "Create your profile": "What should Yourkly call you?" (name, required)
+  plus an optional picture pick (stork by default).
+- Returning users skip profile setup and go straight in.
+- Signed-in projects are saved under the email (repo names carry an
+  owner prefix); signed-out users keep the anonymous workspace unchanged.
+  The dashboard nudges signed-out users with projects: "Want these
+  projects on any device? Sign in."
+- Account page: signed out shows the sign-in prompt; signed in shows the
+  profile (picture + name + email) with "Edit profile" and "Sign out."
+- The profile-preview pill shows "Hello, I'm [name]" with the chosen
+  picture.
+- Help "How Yourkly works" step 1 ("Sign in with your email / Your email
+  is your login. No new password to remember.") describes this flow.
+- Email sending: needs RESEND_API_KEY (see STATUS.md). Until it is set,
+  codes cannot be delivered to real inboxes.
 
 ## 3. Start a project
 
