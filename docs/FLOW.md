@@ -39,45 +39,41 @@ NaLonni to approve: try-first with email later, yes or no?
 
 ## 3. Start a project
 
-- Give the project a name.
-- We set up a safe place for it and save the first version.
+- From the dashboard sidebar or the "New project" button: "Start a new project."
+- Give the project a name. We set up a safe place for it and save the first version.
 - Land in the project view.
 - Status: BUILT.
 
 ## 4. Work on files
 
-- File list down the side. "New file" button. Click a file to open it.
-- A plain writing editor. Write, save, keep going.
+- In the project view, "Work on files" shows the file list. "New file" button. Click a file to open it.
+- The editor bar shows the file name and whether changes are saved yet. Write, label what changed, "Save as a new version."
 - Nothing here should need explaining. If it does, the design is wrong.
 - Status: BUILT.
 
 ## 5. Save points (versions)
 
-- "Save this version" asks for a plain-language label: what changed.
-- History shows every version with its label and date, newest first.
-- "Go back to this version" restores it. Current work is never lost;
-  going back just saves where you were first.
+- "Review save points" lists every version with its label, how long ago, and its version number (v1, v2, ...), newest first. The newest is tagged "Current version."
+- "Go back to this version" asks "Put these files back?" first. Going back saves as a new Save Point, so nothing newer is ever lost.
+- The dashboard's "Recent activity" feed is built from save points across projects.
 - Status: BUILT.
 
-## 6. Send in the agents
+## 6. Send in the helpers
 
-- From any project: "Send in the agents."
-- Describe what you need in plain words (or pick a suggested task).
-- Each agent gets its own private copy of the project and works at the
-  same time. You see each one working, with its mascot, so you always
-  know who is doing what.
+- From any project, "Or do something else" offers "Send in the helpers."
+- Three helpers (the fixer, the builder, the polisher) each take a copy of the project and work at the same time. You see each one with its stork mascot, so you always know who is doing what.
 - Status: BUILT.
 
 ## 7. Compare
 
-- When the agents finish, their work appears side by side.
+- When the helpers finish, their work appears side by side.
 - Each one is explained in plain words: what it changed and why.
-- Each card shows the agent's mascot so you can tell them apart at a glance.
+- Each card shows the helper's mascot so you can tell them apart at a glance.
 - Status: BUILT.
 
 ## 8. Keep one
 
-- "Keep this one" makes that agent's version the project's current version.
+- "Keep this one" makes that helper's version the project's current version.
 - The other copies stay saved. Nothing is thrown away.
 - You are back in the project view, on the winning version.
 - Status: BUILT.

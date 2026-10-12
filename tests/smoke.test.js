@@ -41,7 +41,9 @@ test('workspace lives behind /app', async () => {
   assert.equal(r.status, 200);
   const html = await r.text();
   assert.ok(html.includes('id="app"'), 'app shell present');
-  assert.ok(html.includes('Your projects'), 'workspace nav present');
+  assert.ok(html.includes('app-sidebar'), 'sidebar present');
+  assert.ok(html.includes('New project'), 'nav present');
+  assert.ok(html.includes('Your work, made clear.'), 'tagline present');
 });
 
 test('landing page mirrors the original Yourkly landing', async () => {
