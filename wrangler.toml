@@ -1,0 +1,7 @@
+name = "yourkly-artifacts"
+main = "dist/worker.js"
+compatibility_date = "2026-10-12"
+
+[[artifacts]]
+binding = "ARTIFACTS"
+namespace = "default"
