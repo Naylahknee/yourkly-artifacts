@@ -121,6 +121,10 @@ const PAGE_STYLE = `
   .form-label { font-size: 14px; font-weight: 500; display: block; margin-bottom: 6px; }
   .form-hint { font-size: 13px; color: var(--yp-grey); line-height: 1.5; margin-top: 12px; }
   .error-box { color: var(--yp-red); background: var(--yp-red-bg); border: 1px solid var(--yp-red-border); border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 14px; }
+  .ok-banner { color: var(--yp-green-ink); background: #eefbf3; border: 1px solid #bfe8cd; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; font-size: 15px; font-weight: 600; }
+  .keep-confirm { margin-top: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fcfcfe; }
+  .keep-confirm p { margin: 0 0 12px; font-size: 15px; }
+  .working-note { color: var(--muted); font-size: 15px; }
   .ok-msg { color: var(--yp-green-ink); font-size: 14px; margin-top: 12px; }
   .info-callout { background: var(--yp-lilac-bg); border-left: 3px solid var(--yp-purple); border-radius: 0 12px 12px 0; padding: 16px 18px; font-size: 14.5px; color: var(--yp-ink-soft); margin: 20px 0; }
   .info-callout strong { color: var(--yp-ink); }
@@ -546,7 +550,7 @@ const LANDING_STYLE = `
   .landing-cta:hover { background: #4a3fb8; }
   .landing-cta-stack > span { color: var(--muted); font-size: 14px; line-height: 1.4; }
   .landing-product-wrap { position: relative; min-width: 0; }
-  .landing-stork-peek { position: absolute; z-index: 0; width: min(150px, 27%); right: -28px; top: -80px; pointer-events: none; }
+  .landing-stork-peek { position: absolute; z-index: 0; width: min(150px, 27%); right: -28px; top: -48px; pointer-events: none; }
   .landing-product-preview { position: relative; z-index: 1; min-height: 340px; padding: 26px; background: #fff; border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 24px 60px rgba(23, 23, 36, .10); }
   .landing-product-head { display: flex; align-items: center; gap: 12px; }
   .landing-product-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: var(--purple); color: #fff; font-size: 16px; font-weight: 800; line-height: 1; }
@@ -570,7 +574,7 @@ const LANDING_STYLE = `
     .landing-cta-stack { align-items: stretch; }
     .landing-cta { width: 100%; text-align: center; }
     .landing-cta-stack > span { text-align: center; }
-    .landing-stork-peek { width: 102px; right: -7px; top: -56px; }
+    .landing-stork-peek { width: 102px; right: -7px; top: -30px; }
     .landing-product-preview { min-height: 320px; padding: 21px; border-radius: 20px; }
     .landing-task-card strong { font-size: 18px; }
   }

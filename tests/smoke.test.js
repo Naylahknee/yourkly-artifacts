@@ -244,3 +244,73 @@ test('legacy demo flow still works (onboarding)', async () => {
 
   await api('/api/projects/' + name, 'DELETE');
 });
+
+test('project name casing is preserved exactly', async () => {
+  const input = 'My MiXeD Case Project';
+  let res = await api('/api/projects', 'POST', { name: input });
+  assert.equal(res.status, 200, 'create failed: ' + res.json.error);
+  assert.equal(res.json.displayName, input, 'display name keeps exact casing');
+  const slug = res.json.name;
+  assert.ok(slug && slug !== input, 'slug is separate from display name');
+
+  // listing returns the exact display name
+  res = await api('/api/projects');
+  const found = (res.json.projects || []).find((p) => p.name === slug);
+  assert.ok(found, 'project appears in listing');
+  assert.equal(found.displayName, input, 'listing preserves casing');
+
+  // opening the project returns the exact display name
+  res = await api('/api/projects/' + slug);
+  assert.equal(res.json.displayName, input, 'open project preserves casing');
+
+  await api('/api/projects/' + slug, 'DELETE');
+});
+
+test('keep completes quickly and never hangs', async () => {
+  const name = 'test-keep-' + Date.now().toString(36);
+  let res = await api('/api/projects', 'POST', { name });
+  assert.equal(res.status, 200);
+  const slug = res.json.name;
+
+  res = await api('/api/projects/' + slug + '/agents', 'POST');
+  assert.equal(res.status, 200);
+
+  const start = Date.now();
+  res = await api('/api/projects/' + slug + '/keep', 'POST', { winnerId: 'build' });
+  const elapsed = Date.now() - start;
+  assert.equal(res.status, 200, 'keep failed: ' + res.json.error);
+  assert.ok(elapsed < 60000, 'keep completed in ' + elapsed + 'ms (must not hang)');
+
+  // kept version is current: builder's file exists
+  res = await api('/api/projects/' + slug + '/file?path=' + encodeURIComponent('about-this-project.md'));
+  assert.equal(res.status, 200);
+  assert.ok(res.json.content.includes('About this project'), 'kept version is live in the project');
+
+  await api('/api/projects/' + slug, 'DELETE');
+});
+
+test('keep flow never uses a blocking dialog', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('askKeepVersion'), 'inline keep confirm exists');
+  assert.ok(html.includes('Keeping the'), 'keep progress text exists');
+  assert.ok(html.includes('ok-banner'), 'keep confirmation banner exists');
+  assert.ok(!html.includes("confirm('Keep the"), 'no blocking confirm() on the keep action');
+});
+
+test('save-task-for-later wires into Things to Do', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('id="nuSaveLater"'), 'save-for-later button exists');
+  assert.ok(html.includes('saveTodos'), 'save handler persists the draft');
+  assert.ok(html.includes("go('todos')"), 'saved draft lands in Things to Do');
+  // the old broken behavior was a bare navigation with no save
+  assert.ok(!html.includes('data-go="project">Save task for later'), 'button no longer just navigates away');
+});
+
+test('sign-in link does not collide with the stork', async () => {
+  const r = await fetch(BASE + '/');
+  const html = await r.text();
+  assert.ok(!html.includes('top: -80px'), 'stork peek no longer reaches into the header');
+  assert.ok(html.includes('landing-signin'), 'sign in link still present');
+});
