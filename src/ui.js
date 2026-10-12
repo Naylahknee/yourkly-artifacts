@@ -59,6 +59,9 @@ const PAGE_STYLE = `
   .app-nav-item:hover { background: #F7F6FC; color: var(--yp-purple); }
   .app-nav-item--active { color: var(--yp-purple); }
   .app-nav-item--active::before { background: var(--yp-purple); }
+  .app-nav-submenu { display: flex; flex-direction: column; padding: 2px 0 6px; }
+  .app-nav-sublabel { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--yp-grey); padding: 8px 20px 2px 32px; }
+  .app-nav-subitem { padding-left: 32px; font-size: 13.5px; }
   .app-sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--yp-grey-light); }
   .app-footer-status { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--yp-grey); }
   .app-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #00B894; }
@@ -488,6 +491,20 @@ const PAGE_STYLE = `
   .task-card-summary { display: block; font-size: 13.5px; color: var(--yp-grey); }
   .walk-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
   .walk-step p { font-size: 14.5px; }
+  .steps-wrap { display: grid; grid-template-columns: minmax(250px, 360px) 1fr; gap: 16px; align-items: start; margin: 18px 0; }
+  .steps-wrap .steps-list { margin: 0; }
+  .steps-wrap .step-detail { margin-top: 0; }
+  .step-nav { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .step-nav .pl-btn:disabled, .step-nav .pl-btn-primary:disabled { opacity: .45; cursor: default; }
+  .where-box { background: var(--yp-panel); border-radius: 12px; padding: 14px 16px; margin: 16px 0 4px; }
+  .where-box p { margin-bottom: 0 !important; font-size: 13.5px; }
+  .gloss-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .gloss-bar .help-search { margin-bottom: 0; flex: 1; min-width: 200px; }
+  .toggle-pills { display: inline-flex; gap: 4px; background: var(--yp-panel); border: 1px solid var(--yp-grey-light); border-radius: 999px; padding: 4px; }
+  .toggle-pill { border: none; background: none; border-radius: 999px; padding: 8px 16px; font-size: 13.5px; font-weight: 600; color: var(--yp-grey); cursor: pointer; white-space: nowrap; }
+  .toggle-pill:hover { color: var(--yp-purple); }
+  .toggle-pill--on { background: #fff; color: var(--yp-purple); box-shadow: 0 1px 4px rgba(0,0,0,.10); }
+  .glossary-alt { font-size: 13.5px; color: var(--yp-grey); }
 
   /* Onboarding tour */
   .tour-card { background: #fff; border: 1px solid var(--yp-lilac-border); border-radius: 18px; padding: 28px 30px; box-shadow: 0 8px 34px rgba(108,92,231,.12); margin-bottom: 16px; animation: card-in .4s ease both; }
@@ -514,6 +531,9 @@ const PAGE_STYLE = `
     .updates-row-next { max-width: none; }
     .help-grid3, .kind-cards { grid-template-columns: 1fr; }
     .task-grid { grid-template-columns: 1fr; }
+    .steps-wrap { grid-template-columns: 1fr; }
+    .gloss-bar { flex-direction: column; align-items: stretch; }
+    .gloss-bar .toggle-pills { align-self: flex-start; }
     .version-card { flex-direction: column; }
     .file-addrow { flex-direction: column; }
     .project-row { flex-direction: column; align-items: flex-start; }
@@ -780,8 +800,21 @@ const PROJECT_NAV = [
 function navItem(view, label, active) {
   return '<button class="app-nav-item' + (active ? ' app-nav-item--active' : '') + '" data-nav="' + view + '">' + esc(label) + '</button>';
 }
+function helpSubmenu() {
+  const t = state.helpTopic || 'getting-started';
+  let h = '<div class="app-nav-submenu"><div class="app-nav-sublabel">Help topics</div>';
+  HELP_TOPICS.forEach(function(topic) {
+    h += '<button class="app-nav-item app-nav-subitem' + (t === topic[0] ? ' app-nav-item--active' : '') +
+      '" data-htopic="' + topic[0] + '">' + esc(topic[1]) + '</button>';
+  });
+  return h + '</div>';
+}
 function renderNav(activeView) {
-  const g = GLOBAL_NAV.map(function(n) { return navItem(n[0], n[1], activeView === n[0] || (activeView === 'new' && n[0] === 'projects')); }).join('');
+  const helpOpen = activeView === 'help';
+  const g = GLOBAL_NAV.map(function(n) {
+    const item = navItem(n[0], n[1], activeView === n[0] || (activeView === 'new' && n[0] === 'projects'));
+    return (n[0] === 'help' && helpOpen) ? item + helpSubmenu() : item;
+  }).join('');
   document.getElementById('sideGlobal').innerHTML = g;
   document.getElementById('drawerGlobal').innerHTML = g;
   const inProject = !!state.project;
@@ -797,6 +830,15 @@ function renderNav(activeView) {
     document.getElementById('drawerProject').innerHTML = p;
   }
   bindNavClicks();
+  bindHelpTopicClicks();
+}
+function bindHelpTopicClicks() {
+  document.querySelectorAll('#sideGlobal [data-htopic], #drawerGlobal [data-htopic]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      closeDrawer();
+      go('help', el.getAttribute('data-htopic'));
+    });
+  });
 }
 function bindNavClicks() {
   document.querySelectorAll('[data-nav]').forEach(function(el) {
@@ -2032,13 +2074,26 @@ function bindHelpBody(body) {
     };
   });
   const steps = body.querySelectorAll('.step-row');
-  steps.forEach(function(s) {
-    s.onclick = function() {
-      steps.forEach(function(x) { x.classList.remove('step-row--on'); });
-      s.classList.add('step-row--on');
-      document.getElementById('stepDetail').innerHTML = s.getAttribute('data-detail');
-    };
+  const stepPrev = document.getElementById('stepPrev');
+  const stepNext = document.getElementById('stepNext');
+  function goStep(i) {
+    if (!steps.length) return;
+    const n = Math.max(0, Math.min(steps.length - 1, i));
+    steps.forEach(function(x) { x.classList.remove('step-row--on'); });
+    steps[n].classList.add('step-row--on');
+    document.getElementById('stepDetail').innerHTML = steps[n].getAttribute('data-detail');
+    if (stepPrev) stepPrev.disabled = (n === 0);
+    if (stepNext) stepNext.disabled = (n === steps.length - 1);
+  }
+  function currentStep() {
+    for (let i = 0; i < steps.length; i++) if (steps[i].classList.contains('step-row--on')) return i;
+    return 0;
+  }
+  steps.forEach(function(s, i) {
+    s.onclick = function() { goStep(i); };
   });
+  if (stepPrev) stepPrev.onclick = function() { goStep(currentStep() - 1); };
+  if (stepNext) stepNext.onclick = function() { goStep(currentStep() + 1); };
   const taskCards = body.querySelectorAll('.task-card');
   taskCards.forEach(function(c) {
     c.onclick = function() {
@@ -2049,12 +2104,22 @@ function bindHelpBody(body) {
   });
   const glossFilter = document.getElementById('glossFilter');
   if (glossFilter) {
-    glossFilter.addEventListener('input', function() {
-      const q = glossFilter.value.trim().toLowerCase();
-      document.querySelectorAll('#glossBody tr').forEach(function(tr) {
-        tr.style.display = tr.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
-      });
-    });
+    renderGlossRows();
+    glossFilter.addEventListener('input', applyGlossFilter);
+    const pillYt = document.getElementById('glossPillYt');
+    const pillTy = document.getElementById('glossPillTy');
+    if (pillYt && pillTy) {
+      pillYt.onclick = function() {
+        glossDir = 'yt';
+        pillYt.classList.add('toggle-pill--on'); pillTy.classList.remove('toggle-pill--on');
+        renderGlossRows();
+      };
+      pillTy.onclick = function() {
+        glossDir = 'ty';
+        pillTy.classList.add('toggle-pill--on'); pillYt.classList.remove('toggle-pill--on');
+        renderGlossRows();
+      };
+    }
   }
   const reportBtn = document.getElementById('btnReport');
   if (reportBtn) {
@@ -2070,37 +2135,42 @@ function bindHelpBody(body) {
 }
 function helpGettingStarted() {
   return '<div class="help-grid3">' +
-    '<button class="help-topic-card" data-htopic="how-it-works"><h3>I\\u2019m new to all of this</h3><p>Four steps, start to finish: start a project, open it, keep a version, send in the helpers.</p><span class="text-link">Show me how Yourkly works \\u2192</span></button>' +
+    '<button class="help-topic-card" data-htopic="how-it-works"><h3>I\\u2019m new to all of this</h3><p>Four steps, start to finish: sign in, open a project, keep a version, send in the helpers.</p><span class="text-link">Show me how Yourkly works \\u2192</span></button>' +
     '<button class="help-topic-card" data-htopic="tasks"><h3>I know what I want to do</h3><p>Pick the thing you are trying to do and get the steps for it, in order.</p><span class="text-link">Find my task \\u2192</span></button>' +
     '<button class="help-topic-card" data-htopic="glossary"><h3>I hit a word I don\\u2019t know</h3><p>Every word Yourkly uses, and what it actually means.</p><span class="text-link">Open the glossary \\u2192</span></button></div>' +
     '<h2 class="help-section-title">The short version</h2>' +
     '<p style="font-size:15.5px;max-width:62ch;margin:12px 0 18px">Your projects are saved and kept safe. Yourkly is the front door: it remembers where you stopped, explains what changed in normal words, and keeps a Save Point every time you save so you can always go back.</p>' +
-    '<div class="info-callout"><strong>Two things worth knowing straight away.</strong> Nothing is saved until you press a button that says so \\u2014 until then your edits are drafts waiting for you. And nothing you see in Yourkly is made up: every number, filename and date comes from your real project.</div>' +
+    '<div class="info-callout"><strong>Two things worth knowing straight away.</strong> Nothing is saved until you press a button that says so. Until then, your edits are drafts waiting for you. And nothing you see in Yourkly is made up: every number, filename and date comes from your real project.</div>' +
     '<div class="cta-row"><button class="pl-btn-primary" data-htopic="how-it-works">Start with how it works</button>' +
     '<button class="pl-btn" data-htopic="glossary">Jump to the glossary</button></div>';
 }
 const HOW_STEPS = [
-  { n: 1, label: 'Start a project', detail: '<div class="section-label section-label--tight">Step 1 of 4</div><h3>Start a project</h3><p>Your projects are saved and kept safe. No new password, nothing to install, nothing to learn first.</p><p>Yourkly keeps your projects in your own workspace and remembers where you left off.</p><div class="info-callout"><strong>Where you\\u2019ll see this</strong><br>The Home screen, when you start your first project.</div>' },
-  { n: 2, label: 'Open a project and pick up where you left off', detail: '<div class="section-label section-label--tight">Step 2 of 4</div><h3>Open a project and pick up where you left off</h3><p>Yourkly shows you the last Save Point and what changed, so you start exactly where you stopped.</p><div class="info-callout"><strong>Where you\\u2019ll see this</strong><br>The Home screen, every time you come back.</div>' },
-  { n: 3, label: 'Make a Save Point when you want to keep a version', detail: '<div class="section-label section-label--tight">Step 3 of 4</div><h3>Make a Save Point when you want to keep a version</h3><p>A Save Point is a snapshot of your project at a moment in time. Every time you save, Yourkly keeps one, so you can always see what changed and go back.</p><div class="info-callout"><strong>Where you\\u2019ll see this</strong><br>Inside a project, every time you save a file.</div>' },
-  { n: 4, label: 'Send in the helpers when you want help', detail: '<div class="section-label section-label--tight">Step 4 of 4</div><h3>Send in the helpers when you want help</h3><p>Three helpers \\u2014 the fixer, the builder, and the polisher \\u2014 each take a safe copy of your project and work at the same time. You compare their work in plain words and keep the one you like best.</p><div class="info-callout"><strong>Where you\\u2019ll see this</strong><br>Inside a project, from Project Home or Separate Versions.</div>' },
+  { n: 1, label: 'Sign in with your email', detail: '<div class="section-label section-label--tight">Step 1 of 4</div><h3>Sign in with your email</h3><p>Your email is your login. No new password to remember, and nothing to install before you start.</p><p>Your projects are saved under your email, so your work is waiting for you every time you sign in.</p><div class="where-box"><div class="section-label section-label--tight">Where you\\u2019ll see this</div><p>The Welcome screen, before you sign in.</p></div>' },
+  { n: 2, label: 'Open a project and pick up where you left off', detail: '<div class="section-label section-label--tight">Step 2 of 4</div><h3>Open a project and pick up where you left off</h3><p>Yourkly shows you the last Save Point and what changed, so you start exactly where you stopped.</p><div class="where-box"><div class="section-label section-label--tight">Where you\\u2019ll see this</div><p>The Home screen, every time you come back.</p></div>' },
+  { n: 3, label: 'Make a Save Point when you want to keep a version', detail: '<div class="section-label section-label--tight">Step 3 of 4</div><h3>Make a Save Point when you want to keep a version</h3><p>A Save Point is a snapshot of your project at a moment in time. Every time you save, Yourkly keeps one, so you can always see what changed and go back.</p><div class="where-box"><div class="section-label section-label--tight">Where you\\u2019ll see this</div><p>Inside a project, every time you save a file.</p></div>' },
+  { n: 4, label: 'Send in the helpers when you want help', detail: '<div class="section-label section-label--tight">Step 4 of 4</div><h3>Send in the helpers when you want help</h3><p>Three helpers, the fixer, the builder, and the polisher, each take a safe copy of your project and work at the same time. You compare their work in plain words and keep the one you like best.</p><div class="where-box"><div class="section-label section-label--tight">Where you\\u2019ll see this</div><p>Inside a project, from Project Home or Separate Versions.</p></div>' },
 ];
 function helpHowItWorks() {
   let html = '<h2 class="help-section-title">How Yourkly works</h2>' +
-    '<p class="help-section-intro">Four steps, start to finish. Click one to see what it actually involves.</p><div class="steps-list">';
+    '<p class="help-section-intro">Four steps, start to finish. Click one to see what it actually involves.</p><div class="steps-wrap"><div class="steps-list">';
   HOW_STEPS.forEach(function(s, i) {
-    html += '<button class="step-row' + (i === 0 ? ' step-row--on' : '') + '" data-detail="' + esc(s.detail).replace(/"/g, '&quot;') + '">' +
+    html += '<button class="step-row' + (i === 0 ? ' step-row--on' : '') + '" data-step="' + i + '" data-detail="' + esc(s.detail).replace(/"/g, '&quot;') + '">' +
       '<span class="step-num">' + s.n + '</span><span class="step-text">' + esc(s.label) + '</span></button>';
   });
-  html += '</div><div class="step-detail" id="stepDetail">' + HOW_STEPS[0].detail + '</div>';
+  html += '</div><div><div class="step-detail" id="stepDetail">' + HOW_STEPS[0].detail + '</div>' +
+    '<div class="step-nav"><button class="pl-btn" id="stepPrev" disabled>\\u2190 Previous step</button>' +
+    '<button class="pl-btn-primary" id="stepNext">Next step \\u2192</button></div></div></div>';
   return html;
 }
 const TASK_CARDS = [
-  { id: 'save', label: 'I want to save my project', summary: 'Keep a version you can come back to.', answer: '<h3>I want to save my project</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project and open the file you want to change.</p></div><div class="walk-step"><span class="step-num">2</span><p>Make your edits. The pill at the top says \\u201cChanges not saved yet\\u201d while you work.</p></div><div class="walk-step"><span class="step-num">3</span><p>Write one line under \\u201cWhat changed?\\u201d so future-you can find this version.</p></div><div class="walk-step"><span class="step-num">4</span><p>Press \\u201cSave as a new version\\u201d. Yourkly keeps a Save Point.</p></div>' },
-  { id: 'helpers', label: 'I want help with my project', summary: 'Send in three helpers and keep the best work.', answer: '<h3>I want help with my project</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open \\u201cSeparate Versions\\u201d and press \\u201cSend in the helpers\\u201d.</p></div><div class="walk-step"><span class="step-num">3</span><p>Compare what each helper changed, in plain words.</p></div><div class="walk-step"><span class="step-num">4</span><p>Press \\u201cKeep this one\\u201d on the version you like best.</p></div>' },
-  { id: 'changes', label: 'I want to see what changed', summary: 'Read the story of every Save Point.', answer: '<h3>I want to see what changed</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open \\u201cWhat Changed\\u201d \\u2014 every Save Point, newest first.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cSee details\\u201d on any version.</p></div>' },
-  { id: 'undo', label: 'I want to undo a mistake', summary: 'Go back to an earlier Save Point without losing anything newer.', answer: '<h3>I want to undo a mistake</h3><div class="walk-step"><span class="step-num">1</span><p>Open \\u201cSave Points\\u201d in your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Find the version you want to go back to.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cGo back to this version\\u201d and confirm.</p></div><div class="walk-step"><span class="step-num">4</span><p>Yourkly puts those files back and saves that as a new Save Point \\u2014 so nothing newer is ever lost.</p></div>' },
-  { id: 'files', label: 'I want to work with my files', summary: 'Open, edit, rename, download, and organize.', answer: '<h3>I want to work with my files</h3><div class="walk-step"><span class="step-num">1</span><p>Open \\u201cProject Files\\u201d in your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Folders open with \\u201cShow what\\u2019s inside\\u201d. Each file has Open, History, Download, Rename, and Delete.</p></div><div class="walk-step"><span class="step-num">3</span><p>History shows which Save Points changed that file.</p></div>' },
+  { id: 'understand', label: 'I want to understand how versions work', summary: 'What a version is for, and the few things that actually matter.', answer: '<h3>I want to understand how versions work</h3><div class="walk-step"><span class="step-num">1</span><p>Your project is a set of files. A version is that whole set, frozen at one moment in time.</p></div><div class="walk-step"><span class="step-num">2</span><p>A Save Point is a version you kept on purpose. Every time you save, Yourkly keeps one.</p></div><div class="walk-step"><span class="step-num">3</span><p>The main version is the current one. That is where you work unless you choose otherwise.</p></div><div class="walk-step"><span class="step-num">4</span><p>You can always go back to an earlier Save Point, and nothing newer is ever lost.</p></div><div class="walk-step"><span class="step-num">5</span><p>The helpers work in separate copies, never in your main version, until you keep one.</p></div>' },
+  { id: 'save', label: 'I want to save my project', summary: 'Keep a version you can come back to, anytime.', answer: '<h3>I want to save my project</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project and open the file you want to change.</p></div><div class="walk-step"><span class="step-num">2</span><p>Make your edits. The pill at the top says \\u201cChanges not saved yet\\u201d while you work.</p></div><div class="walk-step"><span class="step-num">3</span><p>Write one line under \\u201cWhat changed?\\u201d so future-you can find this version.</p></div><div class="walk-step"><span class="step-num">4</span><p>Press \\u201cSave as a new version\\u201d. Yourkly keeps a Save Point.</p></div>' },
+  { id: 'share', label: 'I want to share my project', summary: 'Download your files and hand them to someone else.', answer: '<h3>I want to share my project</h3><div class="walk-step"><span class="step-num">1</span><p>Open \\u201cProject Files\\u201d in your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Press \\u201cDownload\\u201d on each file you want to share.</p></div><div class="walk-step"><span class="step-num">3</span><p>Send the downloaded files to the other person however you like.</p></div><div class="walk-step"><span class="step-num">4</span><p>Yourkly itself has no share links. \\u201cWho Can See It\\u201d shows that only you can open your projects here.</p></div>' },
+  { id: 'helpers', label: 'I want help from the helpers', summary: 'Send in three helpers and keep the best work.', answer: '<h3>I want help from the helpers</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open \\u201cSeparate Versions\\u201d and press \\u201cSend in the helpers\\u201d.</p></div><div class="walk-step"><span class="step-num">3</span><p>Compare what each helper changed, in plain words.</p></div><div class="walk-step"><span class="step-num">4</span><p>Press \\u201cKeep this one\\u201d on the version you like best.</p></div>' },
+  { id: 'changes', label: 'I want to see what changed', summary: 'Compare versions and read the story of your project.', answer: '<h3>I want to see what changed</h3><div class="walk-step"><span class="step-num">1</span><p>Open your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open \\u201cWhat Changed\\u201d to see every Save Point, newest first.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cSee details\\u201d on any version.</p></div>' },
+  { id: 'undo', label: 'I want to undo a mistake', summary: 'Go back to an earlier Save Point without losing anything newer.', answer: '<h3>I want to undo a mistake</h3><div class="walk-step"><span class="step-num">1</span><p>Open \\u201cSave Points\\u201d in your project.</p></div><div class="walk-step"><span class="step-num">2</span><p>Find the version you want to go back to.</p></div><div class="walk-step"><span class="step-num">3</span><p>Press \\u201cGo back to this version\\u201d and confirm.</p></div><div class="walk-step"><span class="step-num">4</span><p>Yourkly puts those files back and saves that as a new Save Point, so nothing newer is ever lost.</p></div>' },
+  { id: 'publish', label: 'I want to publish my app', summary: 'What publishing means, and what Yourkly does and does not do yet.', answer: '<h3>I want to publish my app</h3><div class="walk-step"><span class="step-num">1</span><p>Publishing means putting your app on the web so other people can open it in a browser.</p></div><div class="walk-step"><span class="step-num">2</span><p>Yourkly does not publish apps. It keeps your versions safe and helps you work on them.</p></div><div class="walk-step"><span class="step-num">3</span><p>When you are ready, download your files from \\u201cProject Files\\u201d.</p></div><div class="walk-step"><span class="step-num">4</span><p>Put those files online with a web host. Yourkly\\u2019s part is keeping them safe and organized.</p></div>' },
+  { id: 'bring', label: 'I want to bring a project from GitHub', summary: 'Move a project from a repo link into Yourkly. No extra login needed.', answer: '<h3>I want to bring a project from GitHub</h3><div class="walk-step"><span class="step-num">1</span><p>A repo link is a web address that points to a project stored on GitHub.</p></div><div class="walk-step"><span class="step-num">2</span><p>Open the link in your browser. You do not need to log in to see a public project.</p></div><div class="walk-step"><span class="step-num">3</span><p>Download the files you want to bring over.</p></div><div class="walk-step"><span class="step-num">4</span><p>In Yourkly, make a new project and add those files to it.</p></div><div class="walk-step"><span class="step-num">5</span><p>Save, and Yourkly keeps your first Save Point.</p></div>' },
 ];
 function helpTasks() {
   let html = '<h2 class="help-section-title">What are you trying to do?</h2>' +
@@ -2115,7 +2185,7 @@ function helpTasks() {
   const walks = [
     ['I made my first project and want to save it', ['Open the project', 'Open Project Files', 'Add a file or open one', 'Make your edits', 'Press \\u201cSave as a new version\\u201d', 'Write what changed']],
     ['I want the helpers to improve my project', ['Open the project', 'Go to Separate Versions', 'Press \\u201cSend in the helpers\\u201d', 'Wait for the three copies', 'Compare in plain words', 'Press \\u201cKeep this one\\u201d']],
-    ['I think I broke something', ['Open Save Points', 'Find an earlier version', 'Press \\u201cGo back to this version\\u201d', 'Confirm', 'Keep working \\u2014 nothing newer is lost']],
+    ['I think I broke something', ['Open Save Points', 'Find an earlier version', 'Press \\u201cGo back to this version\\u201d', 'Confirm', 'Keep working. Nothing newer is lost']],
   ];
   walks.forEach(function(w) {
     html += '<div class="help-card"><h3>' + esc(w[0]) + '</h3>';
@@ -2127,31 +2197,50 @@ function helpTasks() {
   return html;
 }
 const GLOSSARY = [
-  ['Project', 'One place for all the files that belong together \\u2014 an app, a book, a client job.'],
-  ['Save Point', 'A snapshot of your work at a moment in time. Kept forever, and you can always go back to it.'],
-  ['What changed?', 'The one line you write when you save, so future-you can find that version again.'],
-  ['Main version', 'The real, current version of your project. This is what you work in unless you choose otherwise.'],
-  ['Separate version', 'A safe copy of the whole project so you can try something without touching your main version.'],
-  ['Helpers', 'Three helpers \\u2014 the fixer, the builder, and the polisher \\u2014 that each take a copy of your project and work at the same time.'],
-  ['Restore an earlier version', 'Put the files back the way they were at an earlier Save Point. Nothing newer is deleted.'],
-  ['Changes not saved yet', 'Edits you have made but not saved. They are not kept until you save them.'],
-  ['Project files', 'The folders and files inside your project.'],
-  ['Things to do', 'Your list of what still needs doing in a project, kept in this browser.'],
+  ['Project', '', 'One place for all the files that belong together: an app, a book, a client job.'],
+  ['Save Point', '', 'A snapshot of your work at a moment in time. Kept forever, and you can always go back to it.'],
+  ['What changed?', '', 'The one line you write when you save, so future-you can find that version again.'],
+  ['Main version', 'current version', 'The real, current version of your project. This is what you work in unless you choose otherwise.'],
+  ['Separate version', 'copy', 'A safe copy of the whole project so you can try something without touching your main version.'],
+  ['Helpers', '', 'Three helpers, the fixer, the builder, and the polisher, that each take a copy of your project and work at the same time.'],
+  ['Restore an earlier version', '', 'Put the files back the way they were at an earlier Save Point. Nothing newer is deleted.'],
+  ['Changes not saved yet', 'unsaved edits', 'Edits you have made but not saved. They are not kept until you save them.'],
+  ['Project files', '', 'The folders and files inside your project.'],
+  ['Things to do', 'task list', 'Your list of what still needs doing in a project, kept in this browser.'],
 ];
-function helpGlossary() {
-  let html = '<h2 class="help-section-title">Plain-English glossary</h2>' +
-    '<p class="help-section-intro">The word Yourkly uses, and what it actually means.</p>' +
-    '<div class="help-search"><input type="text" id="glossFilter" placeholder="Filter these words..." aria-label="Filter glossary" autocomplete="off"></div>' +
-    '<table class="glossary-table"><thead><tr><th>Yourkly says</th><th>What it means</th></tr></thead><tbody id="glossBody">';
-  GLOSSARY.forEach(function(g) {
-    html += '<tr><td class="glossary-term">' + esc(g[0]) + '</td><td>' + esc(g[1]) + '</td></tr>';
+let glossDir = 'yt';
+function renderGlossRows() {
+  const yt = glossDir === 'yt';
+  let rows = GLOSSARY.slice();
+  if (!yt) rows = rows.filter(function(g) { return g[1]; }).sort(function(a, b) { return a[1].localeCompare(b[1]); });
+  document.getElementById('glossTh1').textContent = yt ? 'Yourkly says' : 'Also called';
+  document.getElementById('glossTh2').textContent = yt ? 'Also called' : 'Yourkly says';
+  document.getElementById('glossBody').innerHTML = rows.map(function(g) {
+    return '<tr><td class="glossary-term">' + esc(yt ? g[0] : g[1]) + '</td><td>' + esc(yt ? g[1] : g[0]) + '</td><td>' + esc(g[2]) + '</td></tr>';
+  }).join('');
+  applyGlossFilter();
+}
+function applyGlossFilter() {
+  const input = document.getElementById('glossFilter');
+  const q = input ? input.value.trim().toLowerCase() : '';
+  document.querySelectorAll('#glossBody tr').forEach(function(tr) {
+    tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
   });
-  return html + '</tbody></table>';
+}
+function helpGlossary() {
+  glossDir = 'yt';
+  return '<h2 class="help-section-title">Plain-English glossary</h2>' +
+    '<p class="help-section-intro">Every word Yourkly uses, and what it actually means. Where there is a plainer word for the same thing, it is listed too.</p>' +
+    '<div class="gloss-bar"><div class="help-search"><input type="text" id="glossFilter" placeholder="Filter these words..." aria-label="Filter glossary" autocomplete="off"></div>' +
+    '<div class="toggle-pills"><button class="toggle-pill toggle-pill--on" id="glossPillYt">Yourkly \\u2192 Technical term</button>' +
+    '<button class="toggle-pill" id="glossPillTy">Technical term \\u2192 Yourkly</button></div></div>' +
+    '<table class="glossary-table"><thead><tr><th id="glossTh1">Yourkly says</th><th id="glossTh2">Also called</th><th>What it means</th></tr></thead><tbody id="glossBody"></tbody></table>';
 }
 const TROUBLE = [
-  ['I edited a file, but I do not see a new Save Point', ['Edits become a Save Point only when you press \\u201cSave as a new version\\u201d in the editor. Until then, the pill at the top of the editor says \\u201cChanges not saved yet\\u201d \\u2014 everything listed there is waiting for you.']],
-  ['The helpers say they changed my files, but I see nothing', ['The helpers work in separate copies, never in your main version. Open \\u201cSeparate Versions\\u201d to compare their work, then press \\u201cKeep this one\\u201d on the version you like. Nothing changes in your project until you keep one.']],
-  ['I closed the tab \\u2014 is my unsaved work gone?', ['Anything you saved as a Save Point is kept. Edits you never saved were only in the tab, so they are gone. The editor warns you with \\u201cChanges not saved yet\\u201d while edits are unsaved.']],
+  ['I edited a file, but I do not see a new Save Point', ['Edits become a Save Point only when you press \\u201cSave as a new version\\u201d in the editor. Until then, the pill at the top of the editor says \\u201cChanges not saved yet\\u201d. Everything listed there is waiting for you.']],
+  ['The helpers say they changed my files, but I see nothing', ['The helpers work in separate copies, never in your main version. Open \\u201cSeparate Versions\\u201d to compare their work, then press \\u201cKeep this one\\u201d on the version you like. Nothing changes in your project until you keep one.'], 'How the helpers work', 'how-it-works'],
+  ['I do not see my project', ['New projects appear on the My Projects page as soon as you make them.', 'If one is missing, reload the page. If it is still not there, make it again.']],
+  ['I closed the tab. Is my unsaved work gone?', ['Anything you saved as a Save Point is kept. Edits you never saved were only in the tab, so they are gone. The editor warns you with \\u201cChanges not saved yet\\u201d while edits are unsaved.']],
   ['I saved something I did not mean to save', ['Nothing is ever lost: open \\u201cSave Points\\u201d, find the version from before, and press \\u201cGo back to this version\\u201d. Yourkly puts those files back and saves that as a new Save Point.']],
   ['I kept the wrong helper\\u2019s work', ['Open \\u201cSave Points\\u201d and go back to the version from before you kept it. The other helpers\\u2019 copies stay listed under \\u201cSeparate Versions\\u201d until you send the helpers again.']],
 ];
@@ -2161,7 +2250,8 @@ function helpTroubleshooting() {
   TROUBLE.forEach(function(t) {
     html += '<div class="accordion"><button class="accordion-head"><span>' + esc(t[0]) + '</span><span class="accordion-icon">+</span></button>' +
       '<div class="accordion-body"><div class="accordion-body-inner">' +
-      t[1].map(function(p) { return '<p>' + esc(p) + '</p>'; }).join('') + '</div></div></div>';
+      t[1].map(function(p) { return '<p>' + esc(p) + '</p>'; }).join('') +
+      (t[2] ? '<p><button class="text-link" data-htopic="' + t[3] + '">' + esc(t[2]) + ' \\u2192</button></p>' : '') + '</div></div></div>';
   });
   html += '<div class="info-callout"><strong>Still stuck?</strong> Tell us what happened and what you expected instead. <button class="text-link" data-htopic="contact">Contact support \\u2192</button></div>';
   return html;
@@ -2181,7 +2271,8 @@ function helpContact() {
     '<div class="section-label">Where in Yourkly? (optional)</div>' +
     '<input type="text" id="reportWhere" placeholder="For example: Save Points, inside a project" autocomplete="off">' +
     '<div class="cta-row"><button class="pl-btn-primary" id="btnReport">Open a report</button>' +
-    '<button class="pl-btn" data-htopic="troubleshooting">Check the common problems first</button></div>';
+    '<button class="pl-btn" data-htopic="troubleshooting">Check the common problems first</button></div>' +
+    '<p class="help-section-intro" style="margin-top:12px;max-width:62ch">This opens a new report with your answers already filled in. Nothing is sent until you press Submit there, and you can edit every word first.</p>';
 }
 
 showDashboard();

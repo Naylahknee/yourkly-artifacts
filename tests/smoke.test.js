@@ -115,11 +115,16 @@ test('app names no GitHub, no Artifacts, no Cloudflare, no Workers in user text'
     .replace(/href="[^"]*"/g, '')
     .replace(/https:\/\/github\.com\/[A-Za-z0-9/_?=&;.-]*/g, '');
   const lower = textOnly.toLowerCase();
+  // Intentional exception: the "bring a project from GitHub" help card names
+  // the source the user is migrating from. Strip that card's copy before the blanket check.
+  const withoutBring = lower
+    .replace(/i want to bring a project from github/g, '')
+    .replace(/a repo link is a web address that points to a project stored on github\./g, '');
   for (const word of ['github', 'artifact', 'cloudflare', 'worker']) {
-    assert.ok(!lower.includes(word), `app should not say "${word}" where the user can see`);
+    assert.ok(!withoutBring.includes(word), `app should not say "${word}" where the user can see`);
   }
   for (const word of ['\\bcommit\\b', '\\bmerge\\b', '\\brepository\\b', '\\bbranch\\b']) {
-    assert.ok(!new RegExp(word).test(lower), `app should not say "${word}"`);
+    assert.ok(!new RegExp(word).test(withoutBring), `app should not say "${word}"`);
   }
 });
 
@@ -313,4 +318,91 @@ test('sign-in link does not collide with the stork', async () => {
   const html = await r.text();
   assert.ok(!html.includes('top: -80px'), 'stork peek no longer reaches into the header');
   assert.ok(html.includes('landing-signin'), 'sign in link still present');
+});
+
+test('sidebar Help expands into a topics submenu', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('helpSubmenu'), 'submenu builder exists');
+  assert.ok(html.includes('Help topics'), 'small-caps HELP TOPICS label exists');
+  for (const topic of ['Getting started', 'How Yourkly works', 'What are you trying to do?', 'Plain-English glossary', 'When something looks wrong', 'Contact support']) {
+    assert.ok(html.includes(topic), 'submenu lists: ' + topic);
+  }
+  assert.ok(html.includes('app-nav-item--active'), 'active topic gets the purple highlight');
+  assert.ok(html.includes('bindHelpTopicClicks'), 'submenu clicks are wired');
+});
+
+test('help: how-it-works uses the email sign-in step with prev/next navigation', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('Sign in with your email'), 'step 1 is the email sign-in step');
+  assert.ok(html.includes('Your email is your login'), 'email login copy present');
+  assert.ok(html.includes('id="stepPrev"'), 'previous step button present');
+  assert.ok(html.includes('id="stepNext"'), 'next step button present');
+  assert.ok(html.includes('steps-wrap'), 'two-column steps layout present');
+  assert.ok(html.includes('where-box'), 'where-you-will-see-this box present');
+  assert.ok(html.includes('Step 1 of 4'), 'step counter present');
+});
+
+test('help: tasks topic has all eight adapted cards', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  const cards = [
+    'I want to understand how versions work',
+    'I want to save my project',
+    'I want to share my project',
+    'I want help from the helpers',
+    'I want to see what changed',
+    'I want to undo a mistake',
+    'I want to publish my app',
+    'I want to bring a project from GitHub',
+  ];
+  for (const c of cards) assert.ok(html.includes(c), 'task card present: ' + c);
+  assert.ok(html.includes('Step by step'), 'step-by-step section present');
+  assert.ok(html.includes('task-grid'), 'two-column card grid present');
+});
+
+test('help: glossary has toggle pills and the also-called column', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('id="glossPillYt"'), 'Yourkly-first pill present');
+  assert.ok(html.includes('id="glossPillTy"'), 'technical-term-first pill present');
+  assert.ok(html.includes('toggle-pills'), 'toggle pill styling present');
+  assert.ok(html.includes('id="glossTh1"'), 'flippable first column header present');
+  assert.ok(html.includes('Also called'), 'also-called column present');
+  assert.ok(html.includes('What it means'), 'meaning column present');
+  assert.ok(html.includes('id="glossFilter"'), 'glossary filter present');
+});
+
+test('help: troubleshooting accordion has the adapted entries and helper link', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('accordion-head'), 'accordion layout present');
+  assert.ok(html.includes('I do not see my project'), 'missing-project entry present');
+  assert.ok(html.includes('How the helpers work'), 'helpers explainer link present');
+  assert.ok(html.includes('I closed the tab.'), 'unsaved-work entry present');
+});
+
+test('help: contact support has kind cards and a plain report button', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  assert.ok(html.includes('Something is broken'), 'broken kind card present');
+  assert.ok(html.includes('I got stuck'), 'stuck kind card present');
+  assert.ok(html.includes('An idea'), 'idea kind card present');
+  assert.ok(html.includes('>Open a report</button>'), 'report button present');
+  assert.ok(!html.includes('Open a report on GitHub'), 'button copy does not say "on GitHub"');
+  assert.ok(html.includes('Nothing is sent until you press Submit there'), 'report microcopy present');
+  assert.ok(html.includes('Check the common problems first'), 'back-to-troubleshooting button present');
+});
+
+test('help topics use no em-dashes', async () => {
+  const r = await fetch(BASE + '/app');
+  const html = await r.text();
+  const start = html.indexOf('function helpGettingStarted');
+  assert.ok(start !== -1, 'help section located in served script');
+  // The help topic functions are contiguous (~20KB); slice generously.
+  const helpSrc = html.slice(start, start + 40000);
+  assert.ok(helpSrc.includes('function helpContact'), 'slice covers all help topics');
+  // \u2014 in the served inline script is the em-dash escape; it must not appear in help copy.
+  assert.ok(!helpSrc.includes('\\u2014'), 'no em-dash escapes in the help topics');
 });
