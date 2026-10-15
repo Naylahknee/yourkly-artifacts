@@ -208,8 +208,10 @@ async function readAuthJson(repo, name) {
 }
 
 // Read-modify-write for the auth files, with one retry on push conflict.
-// Expired codes and sessions are pruned on every write.
-const AUTH_FILES = ['codes.json', 'sessions.json', 'profiles.json'];
+// Expired codes and sessions are pruned on every write, as are stale
+// rate-limit buckets (see hitRateLimit below).
+const AUTH_FILES = ['codes.json', 'sessions.json', 'profiles.json', 'ratelimits.json'];
+const RL_PRUNE_WINDOW_MS = 60 * 60 * 1000; // longest rate-limit window; prune cutoff
 async function authWrite(env, mutate, message) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const repo = await authRepo(env);
@@ -218,14 +220,19 @@ async function authWrite(env, mutate, message) {
     const codes = await readAuthJson(repo, 'codes.json');
     const sessions = await readAuthJson(repo, 'sessions.json');
     const profiles = await readAuthJson(repo, 'profiles.json');
+    const ratelimits = await readAuthJson(repo, 'ratelimits.json');
     const now = Date.now();
     for (const k of Object.keys(codes)) if (codes[k].expiresAt <= now) delete codes[k];
     for (const k of Object.keys(sessions)) if (sessions[k].expiresAt <= now) delete sessions[k];
-    const draft = { codes: { ...codes }, sessions: { ...sessions }, profiles: { ...profiles } };
+    for (const k of Object.keys(ratelimits)) {
+      const hits = Array.isArray(ratelimits[k]) ? ratelimits[k].filter((t) => now - t < RL_PRUNE_WINDOW_MS) : [];
+      if (hits.length) ratelimits[k] = hits; else delete ratelimits[k];
+    }
+    const draft = { codes: { ...codes }, sessions: { ...sessions }, profiles: { ...profiles }, ratelimits: { ...ratelimits } };
     mutate(draft);
     const creds = await pushCreds(env, AUTH_REPO);
-    const baseFiles = { 'codes.json': JSON.stringify(codes), 'sessions.json': JSON.stringify(sessions), 'profiles.json': JSON.stringify(profiles) };
-    const changes = { 'codes.json': JSON.stringify(draft.codes), 'sessions.json': JSON.stringify(draft.sessions), 'profiles.json': JSON.stringify(draft.profiles) };
+    const baseFiles = { 'codes.json': JSON.stringify(codes), 'sessions.json': JSON.stringify(sessions), 'profiles.json': JSON.stringify(profiles), 'ratelimits.json': JSON.stringify(ratelimits) };
+    const changes = { 'codes.json': JSON.stringify(draft.codes), 'sessions.json': JSON.stringify(draft.sessions), 'profiles.json': JSON.stringify(draft.profiles), 'ratelimits.json': JSON.stringify(draft.ratelimits) };
     try {
       if (baseSha) {
         await pushChanges({ remote: creds.remote, token: creds.token, baseSha, baseFiles, changes, message });
@@ -235,6 +242,36 @@ async function authWrite(env, mutate, message) {
       return;
     } catch (e) { if (attempt === 1) throw e; }
   }
+}
+
+// --- Per-IP rate limits ------------------------------------------------------
+// Counters live in the hidden sign-in repo (ratelimits.json) so every worker
+// isolate shares the same counts. Best-effort by design: if the counter write
+// fails or conflicts, the request is allowed through rather than failed,
+// because a broken limiter must not break the app.
+function clientIp(request) {
+  const fwd = request.headers.get('X-Forwarded-For') || '';
+  return request.headers.get('CF-Connecting-IP') || fwd.split(',')[0].trim() || 'unknown';
+}
+
+async function hitRateLimit(env, request, bucket, limit, windowMs) {
+  const key = bucket + '|' + clientIp(request);
+  const now = Date.now();
+  let allowed = true;
+  try {
+    await authWrite(env, (draft) => {
+      const rl = draft.ratelimits || {};
+      const hits = (Array.isArray(rl[key]) ? rl[key] : []).filter((t) => now - t < windowMs);
+      if (hits.length >= limit) { allowed = false; }
+      else { hits.push(now); rl[key] = hits; }
+      draft.ratelimits = rl;
+    }, 'Rate limit ' + bucket);
+  } catch { /* fail open: a broken limiter must not break the app */ }
+  return allowed;
+}
+
+function tooManyRequests(what) {
+  return json({ error: 'Too many ' + what + ' in a short time. Wait a little while and try again.' }, 429);
 }
 
 async function getEmailHash12(request, env) {
@@ -475,8 +512,26 @@ function parseTarFiles(data) {
   return { files, skippedLarge };
 }
 
-export default {
-  async fetch(request, env) {
+// --- Security headers ----------------------------------------------------------
+// Stamped on every response, pages and API alike. The app serves only its own
+// inline code and images, so the content policy stays strict: same-origin and
+// inline only, no framing, no sniffing.
+const SECURITY_HEADERS = {
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+};
+
+function withSecurityHeaders(res) {
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
+async function handleFetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
@@ -520,12 +575,13 @@ export default {
         }, 'Sign-in code sent');
         const sentRes = await sendCodeEmail(env, email, code);
         if (sentRes.sent) return json({ ok: true, emailSent: true });
-        // Development bypass for tests only: returns the code when email
-        // sending is not configured AND either the bypass flag is explicitly
-        // on, or the address is on the reserved example.com test domain
-        // (RFC 2606: no real mailbox exists there, so no real account can be
-        // impersonated). Never exposes codes for real addresses.
-        if (env.AUTH_DEV_BYPASS === '1' || email.endsWith('@example.com')) {
+        // Local-dev-only gate: the code is echoed back in the API response
+        // ONLY when the AUTH_DEV_BYPASS flag is explicitly enabled, which is
+        // for automated tests on a non-production worker. It must never be
+        // set in production. The old example.com shortcut is gone: test
+        // addresses now get the same response as everyone else, so no code
+        // can be minted without access to the inbox.
+        if (env.AUTH_DEV_BYPASS === '1') {
           return json({ ok: true, emailSent: false, devCode: code, devNote: 'Development bypass: email sending is not set up.' });
         }
         return json({ ok: true, emailSent: false });
@@ -667,6 +723,9 @@ export default {
 
     if (path === '/api/projects' && method === 'POST') {
       try {
+        if (!(await hitRateLimit(env, request, 'create-project', 20, 60 * 60 * 1000))) {
+          return tooManyRequests('new projects');
+        }
         const { name } = await request.json();
         const displayName = String(name || 'my-project').trim().slice(0, 60) || 'my-project';
         const hash12 = await getEmailHash12(request, env);
@@ -694,6 +753,9 @@ export default {
         const parsed = parseGitHubLink(link);
         if (!parsed) {
           return json({ error: 'That does not look like a GitHub link. Try something like github.com/someone/their-project.' }, 400);
+        }
+        if (!(await hitRateLimit(env, request, 'import', 10, 60 * 60 * 1000))) {
+          return tooManyRequests('project imports');
         }
         const tarball = await fetchRepoTarball(parsed.owner, parsed.repo);
         const tar = await gunzipData(tarball);
@@ -762,6 +824,9 @@ export default {
         try {
           const { path: filePath, content, label, remove } = await request.json();
           if (!filePath) return json({ error: 'Missing file path' }, 400);
+          if (!(await hitRateLimit(env, request, 'save-file', 200, 60 * 60 * 1000))) {
+            return tooManyRequests('file saves');
+          }
           const repo = await env.ARTIFACTS.get(name);
           const latest = await latestSavePoint(env, name);
           const files = await readAllFiles(env, name, 'main');
@@ -892,6 +957,9 @@ export default {
     // --- Legacy demo routes (used by onboarding + tests) -------------------
     if (path === '/api/demo/project' && method === 'POST') {
       try {
+        if (!(await hitRateLimit(env, request, 'demo-project', 20, 60 * 60 * 1000))) {
+          return tooManyRequests('new projects');
+        }
         const { name } = await request.json();
         const displayName = String(name || 'demo-project').trim().slice(0, 60) || 'demo-project';
         const safe = safeName(displayName);
@@ -963,5 +1031,10 @@ export default {
     }
 
     return json({ error: 'Not found' }, 404);
+}
+
+export default {
+  async fetch(request, env) {
+    return withSecurityHeaders(await handleFetch(request, env));
   },
 };

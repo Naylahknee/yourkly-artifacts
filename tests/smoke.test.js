@@ -492,6 +492,37 @@ test('send-code rejects a bad email address', async () => {
   assert.ok(/email address/i.test(json.error), 'plain-language error: ' + json.error);
 });
 
+test('send-code never echoes the code without the dev bypass', async () => {
+  // Regression test for the removed example.com backdoor: the code must not
+  // appear in the API response, whatever the address.
+  for (const email of ['nobackdoor-' + Date.now() + '@example.com', 'nobackdoor-' + Date.now() + '@audit-probe.invalid']) {
+    const { status, json } = await api('/api/auth/send-code', 'POST', { email });
+    assert.equal(status, 200);
+    assert.equal(json.ok, true);
+    assert.ok(!('devCode' in json), 'no devCode for ' + email);
+  }
+});
+
+test('security headers are present on pages and API', async () => {
+  const paths = ['/', '/app', '/api/health'];
+  const required = {
+    'strict-transport-security': /max-age=31536000/,
+    'x-content-type-options': /^nosniff$/i,
+    'x-frame-options': /^deny$/i,
+    'referrer-policy': /strict-origin-when-cross-origin/i,
+    'permissions-policy': /camera=\(\)/,
+    'content-security-policy': /default-src 'self'/,
+  };
+  for (const p of paths) {
+    const r = await fetch(BASE + p);
+    assert.equal(r.status, 200, p);
+    for (const [h, re] of Object.entries(required)) {
+      const v = r.headers.get(h) || '';
+      assert.ok(re.test(v), `${p} header ${h}: ${v}`);
+    }
+  }
+});
+
 test('verify-code with no pending code explains what to do', async () => {
   const { status, json } = await api('/api/auth/verify-code', 'POST', { email: 'nobody-here-' + Date.now() + '@example.com', code: '123456' });
   assert.equal(status, 400);
@@ -523,7 +554,7 @@ test('glossary Helpers entry uses the approved wording', async () => {
   assert.ok(html.includes('The fixer, the builder, and the polisher. Each takes a copy of your project and works at the same time.'), 'helpers glossary copy');
 });
 
-test('full sign-in flow: code, profile, session, sign-out', async () => {
+test('full sign-in flow: code, profile, session, sign-out', async (t) => {
   const email = 'flowtest-' + Date.now() + '@example.com';
   const authed = async (path, method, body, cookie) => {
     const r = await fetch(BASE + path, {
@@ -535,10 +566,14 @@ test('full sign-in flow: code, profile, session, sign-out', async () => {
     const m = sc.match(/yourkly_session=([^;]*)/);
     return { status: r.status, json: await r.json().catch(() => ({})), cookie: m ? 'yourkly_session=' + m[1] : '' };
   };
-  // send code (example.com test domain returns the code for tests)
+  // send code (the dev bypass returns the code only when AUTH_DEV_BYPASS=1
+  // is set on the worker under test; in production this test skips)
   let s = await authed('/api/auth/send-code', 'POST', { email });
   assert.equal(s.status, 200, 'send-code: ' + JSON.stringify(s.json));
-  assert.ok(/^\d{6}$/.test(s.json.devCode || ''), 'test code returned');
+  if (!/^\d{6}$/.test(s.json.devCode || '')) {
+    t.skip('dev bypass is off: send-code does not echo the code');
+    return;
+  }
   // wrong code rejected
   let v = await authed('/api/auth/verify-code', 'POST', { email, code: '000000' });
   assert.equal(v.status, 400, 'wrong code rejected');
@@ -581,7 +616,7 @@ test('full sign-in flow: code, profile, session, sign-out', async () => {
   assert.equal(me2.json.email, null, 'signed out');
 });
 
-test('returning user skips profile creation', async () => {
+test('returning user skips profile creation', async (t) => {
   const email = 'returning-' + Date.now() + '@example.com';
   const authed = async (path, method, body, cookie) => {
     const r = await fetch(BASE + path, {
@@ -594,6 +629,10 @@ test('returning user skips profile creation', async () => {
     return { status: r.status, json: await r.json().catch(() => ({})), cookie: m ? 'yourkly_session=' + m[1] : '' };
   };
   let s = await authed('/api/auth/send-code', 'POST', { email });
+  if (!/^\d{6}$/.test(s.json.devCode || '')) {
+    t.skip('dev bypass is off: send-code does not echo the code');
+    return;
+  }
   let v = await authed('/api/auth/verify-code', 'POST', { email, code: s.json.devCode });
   await authed('/api/auth/profile', 'POST', { displayName: 'Returner', avatar: 'stork' }, v.cookie);
   await authed('/api/auth/sign-out', 'POST', {}, v.cookie);
