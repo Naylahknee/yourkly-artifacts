@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 2026-10-15 (security fixes: example.com login backdoor removed, security headers on every response, per-IP rate limits on project creation / file saves / imports; 46 tests)
+**Last updated:** 2026-10-15 (security fixes: example.com login backdoor removed, security headers on every response, per-IP rate limits on project creation / file saves / imports; 46 tests: 44 passing, 2 skip without the dev bypass)
 
 ## What is working
 
